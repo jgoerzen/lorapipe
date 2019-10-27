@@ -1,0 +1,29 @@
+03:46:56 [ INFO] lora starting
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: sys get ver
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: RN2903 1.0.5 Nov 06 2018 10:45:27
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: mac pause
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: 4294967245
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio get mod
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: lora
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio get freq
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: 923300000
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio get pwr
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: 2
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio get sf
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: sf12
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio get bw
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: 125
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio get cr
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: 4/5
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio get wdt
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: 15000
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio set pwr 20
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: ok
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio set sf sf12
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: ok
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio set bw 125
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: ok
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio set cr 4/5
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: ok
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:63] /dev/ttyUSB4 SEROUT: radio set wdt 60000
+03:46:56 [TRACE] (0) lora::ser: [src/ser.rs:56] /dev/ttyUSB4 SERIN: ok
