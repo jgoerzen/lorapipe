@@ -27,7 +27,7 @@ mod lorastik;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
+    if args.len() < 3 {
         println!("Syntax: lora command portname");
         println!("Valid commands are: pipe ping pong kiss");
         exit(255);
@@ -36,7 +36,7 @@ fn main() {
     WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr());
     info!("lora starting");
 
-    let loraser = ser::LoraSer::new(&args[1]).expect("Failed to initialize serial port");
+    let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
     let mut lorastik = lorastik::LoraStik::new(loraser);
     lorastik.radiocfg().expect("Failed to configure radio");
         

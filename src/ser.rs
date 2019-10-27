@@ -52,14 +52,9 @@ impl LoraSer {
             debug!("{}: Received EOF from serial port", self.portname); 
             Ok(None)
         } else {
-            let last = buf.pop();
-            if last == Some('\n') {
-                trace!("{} SERIN: {}", self.portname, buf);
-                Ok(Some(buf))
-            } else {
-                debug!("{}: Received input line '{}' without terminating nerline", self.portname, buf);
-                None.expect("Input line didn't end with newline")
-            }
+            let buf = String::from(buf.trim());
+            trace!("{} SERIN: {}", self.portname, buf);
+            Ok(Some(buf))
         }
     }
 
