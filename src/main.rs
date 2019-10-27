@@ -16,6 +16,8 @@
 
 */
 
+mod comm;
+
 fn main() {
     println!("Hello, world!");
 }
