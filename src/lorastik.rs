@@ -23,6 +23,7 @@ use std::io::{BufRead, BufReader, Error, ErrorKind};
 use std::io;
 use std::sync::mpsc;
 use hex;
+use std::thread;
 
 pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
@@ -40,19 +41,28 @@ pub struct LoraStik {
     readercmdrx: mpsc::Receiver<ReaderCommand>,
     readercmdtx: mpsc::SyncSender<ReaderCommand>,
     readeroutput: mpsc::Sender<Vec<u8>>,
+    readerlinesrx: mpsc::Receiver<String>,
 }
 
 /// Utility to read the response from initialization
-fn initresp(ser: &mut LoraSer) -> io::Result<()> {
-    let line = ser.readln()?;
-    match line {
-        Some(x) =>
-            if x == "invalid_param" {
-                Err(mkerror("Bad response from radio during initialization"))
-            } else {
-                Ok(())
-            },
-        None => Err(mkerror("Unexpected EOF from radio during initialization"))
+fn initresp(rx: mpsc::Receiver<String>) -> io::Result<()> {
+    let line = rx.recv().unwrap();
+    if line == "invalid_param" {
+        Err(mkerror("Bad response from radio during initialization"))
+    } else {
+        Ok(())
+    }
+}
+
+fn readerlinesthread(ser: LoraSer, tx: mpsc::Sender<String>) {
+    loop {
+        let line = ser.readln().expect("Error reading line");
+        if let Some(l) = line {
+            tx.send(l).unwrap();
+        } else {
+            debug!("{}: EOF", ser.portname);
+            return;
+        }
     }
 }
 
@@ -61,7 +71,11 @@ impl LoraStik {
     pub fn new(ser: LoraSer) -> (LoraStik, mpsc::Receiver<Vec<u8>>) {
         let (readercmdtx, readercmdrx) = mpsc::sync_channel(0);
         let (readeroutput, readeroutputreader) = mpsc::channel();
-        (LoraStik { ser, readercmdrx, readercmdtx, readeroutput}, readeroutputreader)
+        let (readerlinestx, readerlinesrx) = mpsc::channel();
+
+        thread::spawn(move || readerlinesthread(ser, readerlinestx));
+        
+        (LoraStik { ser, readercmdrx, readercmdtx, readeroutput, readerlinesrx}, readeroutputreader)
     }
 
     pub fn radiocfg(&mut self) -> io::Result<()> {
@@ -72,7 +86,7 @@ impl LoraStik {
             let line = line?;
             if line.len() > 0 {
                 self.ser.writeln(line)?;
-                initresp(&mut self.ser)?;
+                initresp(self.readerlinesrx)?;
             }
         }
         Ok(())
@@ -113,8 +127,11 @@ impl LoraStik {
             } else {
                 command.unwrap();
             }
-
         }
+    }
+
+    pb fn transmit(&mut self, Vec<u8>) -> io::Result<()> {
+        
     }
 }
 
