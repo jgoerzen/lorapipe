@@ -16,28 +16,16 @@
 
 */
 
-use std::env;
-use std::process::exit;
-use simplelog::*;
-use std::io;
-use log::*;
+use crate::comm::LoraSer;
 
-mod comm;
-mod lorastik;
-
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        println!("Syntax: lora command portname");
-        println!("Valid commands are: pipe ping pong kiss");
-        exit(255);
-    }
-
-    WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr());
-    info!("lora starting");
-
-    let loraser = comm::LoraSer::new(&args[1]).expect("Failed to initialize serial port");
-    let lorastik = lorastik::LoraStik::new(loraser);
-    lorastik.radiocfg().expect("Failed to configure radio");
-        
+pub struct LoraStik {
+    ser: LoraSer
 }
+
+impl LoraStik {
+    pub fn new(ser: LoraSer) -> LoraStik {
+        LoraStik { ser }
+    }
+}
+
+

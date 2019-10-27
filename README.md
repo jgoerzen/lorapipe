@@ -12,6 +12,11 @@ RN2093-based device that has been updated to firmware 1.0.5.  Details
 below.
 
 
+# Data Rate
+
+https://www.rfwireless-world.com/calculators/LoRa-Data-Rate-Calculator.html
+
+
 # Firwmare
 
 See the documents tab for the
