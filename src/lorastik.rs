@@ -122,7 +122,7 @@ impl LoraStik {
                 
             self.ser.writeln(String::from("radio rx 0"))?;
             let response = self.readerlinesrx.recv().unwrap();
-            assert_response(response, "ok")?;
+            assert_response(response, String::from("ok"))?;
 
             // Now we wait for either a write request or data.
 
