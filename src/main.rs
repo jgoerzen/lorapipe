@@ -42,7 +42,9 @@ fn main() {
     let (mut ls, mut radioreceiver) = lorastik::LoraStik::new(loraser);
     ls.radiocfg().expect("Failed to configure radio");
 
-    thread::spawn(move || pipe::loratostdout(radioreceiver));
-    pipe::stdintolora(&mut ls).expect("Failure in stdintolora");
+    let mut ls2 = ls.clone();
+    thread::spawn(move || pipe::loratostdout(radioreceiver).expect("Failure in loratostdout"));
+    thread::spawn(move || pipe::stdintolora(&mut ls2).expect("Failure in stdintolora"));
+    ls.readerthread();
     
 }

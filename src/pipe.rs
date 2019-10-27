@@ -48,7 +48,7 @@ pub fn loratostdout(receiver: crossbeam_channel::Receiver<Vec<u8>>) -> io::Resul
     loop {
         let data = receiver.recv().unwrap();
         stdout.write_all(&data)?;
-        stdout.flush();
+        stdout.flush()?;
     }
 }
 

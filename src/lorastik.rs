@@ -31,12 +31,7 @@ pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
 }
 
-#[derive(PartialEq, Debug)]
-enum LState {
-    ReadRx,
-    Command,
-}
-
+#[derive(Clone)]
 pub struct LoraStik {
     ser: LoraSer,
 
