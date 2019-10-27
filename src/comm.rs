@@ -19,7 +19,7 @@
 use serial::prelude::*;
 use std::io;
 use serial;
-use std::io::{BufReader, BufRead};
+use std::io::{BufReader, BufRead, Write};
 
 pub struct LoraSer {
     br: BufReader<serial::SystemPort>
@@ -43,7 +43,7 @@ impl LoraSer {
 
     /// Read a line from the port.  Return it with EOL characters removed.
     /// None if EOF reached.
-    pub fn read_line(&mut self) -> io::Result<Option<String>> {
+    pub fn readln(&mut self) -> io::Result<Option<String>> {
         let mut buf = String::new();
         let size = self.br.read_line(&mut buf)?;
         if size == 0 {
@@ -56,6 +56,13 @@ impl LoraSer {
                 None.expect("Input line didn't end with newline")
             }
         }
+    }
+
+    /// Transmits a command with terminating EOL characters
+    pub fn writeln(&mut self, mut data: String) -> io::Result<()> {
+        data.push_str("\r\n");
+        let mut serport = self.br.get_mut();
+        serport.write_all(data.as_bytes())
     }
                     
 }
