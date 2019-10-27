@@ -26,6 +26,7 @@ use crossbeam_channel::select;
 use hex;
 use std::thread;
 use std::mem;
+use std::sync::{Arc, Mutex};      // all because bufreader can't be cloned.  s i g h
 
 pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
@@ -38,20 +39,20 @@ enum LState {
 }
 
 pub struct LoraStik {
-    ser: LoraSer,
+    ser: Arc<LoraSer>,
     readerlinesrx: crossbeam_channel::Receiver<String>,
     readeroutput: crossbeam_channel::Sender<Vec<u8>>,
     txblockstx: crossbeam_channel::Sender<Vec<u8>>,
     txblocksrx: crossbeam_channel::Receiver<Vec<u8>>
 }
 
-fn readerlinesthread(ser: &mut LoraSer, tx: crossbeam_channel::Sender<String>) {
+fn readerlinesthread(ser: Arc<LoraSer>, tx: crossbeam_channel::Sender<String>) {
     loop {
-        let line = ser.readln().expect("Error reading line");
+        let line = (*ser).readln().expect("Error reading line");
         if let Some(l) = line {
             tx.send(l).unwrap();
         } else {
-            debug!("{}: EOF", ser.portname);
+            debug!("{}: EOF", (*ser).portname);
             return;
         }
     }
@@ -75,7 +76,10 @@ impl LoraStik {
         let (txblockstx, txblocksrx) = crossbeam_channel::unbounded();
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
 
-        thread::spawn(move || readerlinesthread(&mut ser, readerlinestx));
+        let ser = Arc::new(ser);
+        let ser2 = ser.clone();
+
+        thread::spawn(move || readerlinesthread(ser2, readerlinestx));
         
         (LoraStik { ser, readeroutput, readerlinesrx, txblockstx, txblocksrx}, readeroutputreader)
     }
@@ -97,7 +101,7 @@ impl LoraStik {
         for line in reader.lines() {
             let line = line?;
             if line.len() > 0 {
-                self.ser.writeln(line)?;
+                (*self.ser).writeln(line)?;
                 self.initresp()?;
             }
         }
@@ -110,7 +114,7 @@ impl LoraStik {
         let mut txstr = String::from("radio tx ");
         let hexstr = hex::encode(data);
         txstr.push_str(&hexstr);
-        self.ser.writeln(txstr)?;
+        (*self.ser).writeln(txstr)?;
         
         // We get two responses from this.
         let resp = self.readerlinesrx.recv().unwrap();
@@ -145,7 +149,7 @@ impl LoraStik {
 
             // Enter read mode
             
-            self.ser.writeln(String::from("radio rx 0"))?;
+            (*self.ser).writeln(String::from("radio rx 0"))?;
             let response = self.readerlinesrx.recv().unwrap();
             assert_response(response, String::from("ok"))?;
 
@@ -174,7 +178,7 @@ impl LoraStik {
                     // We have something to send.  Stop the receiver and then go
                     // back to the top of the loop to handle it.
 
-                    self.ser.writeln(String::from("radio rxstop"))?;
+                    (*self.ser).writeln(String::from("radio rxstop"))?;
                     let mut checkresp = self.readerlinesrx.recv().unwrap();
                     if checkresp.starts_with("radio_rx ") {
                         // We had a race.  A packet was coming in.  Decode and deal with it,
