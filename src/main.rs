@@ -22,7 +22,7 @@ use simplelog::*;
 use std::io;
 use log::*;
 
-mod comm;
+mod ser;
 mod lorastik;
 
 fn main() {
@@ -36,8 +36,8 @@ fn main() {
     WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr());
     info!("lora starting");
 
-    let loraser = comm::LoraSer::new(&args[1]).expect("Failed to initialize serial port");
-    let lorastik = lorastik::LoraStik::new(loraser);
+    let loraser = ser::LoraSer::new(&args[1]).expect("Failed to initialize serial port");
+    let mut lorastik = lorastik::LoraStik::new(loraser);
     lorastik.radiocfg().expect("Failed to configure radio");
         
 }

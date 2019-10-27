@@ -65,11 +65,11 @@ impl LoraSer {
 
     /// Transmits a command with terminating EOL characters
     pub fn writeln(&mut self, mut data: String) -> io::Result<()> {
+        trace!("{} SEROUT: {}", self.portname, data);
         data.push_str("\r\n");
-        let mut serport = self.br.get_mut();
+        let serport = self.br.get_mut();
         serport.write_all(data.as_bytes())
     }
-                    
 }
 
 

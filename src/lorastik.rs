@@ -16,15 +16,47 @@
 
 */
 
-use crate::comm::LoraSer;
+use crate::ser::LoraSer;
+use log::*;
+use std::fs;
+use std::io::{BufRead, BufReader};
+use std::io;
 
 pub struct LoraStik {
     ser: LoraSer
 }
 
+/// Utility to read the response from initialization
+fn initresp(ser: &mut LoraSer) -> io::Result<()> {
+    let line = ser.readln()?;
+    match line {
+        Some(x) =>
+            if x == "invalid_param" {
+                None.expect("Bad response from radio during initialization")
+            } else {
+                Ok(())
+            },
+        None => None.expect("Unexpected EOF from radio during initialization"),
+    }
+}
+
 impl LoraStik {
     pub fn new(ser: LoraSer) -> LoraStik {
         LoraStik { ser }
+    }
+
+    pub fn radiocfg(&mut self) -> io::Result<()> {
+        let f = fs::File::open("init.txt")?;
+        let reader = BufReader::new(f);
+
+        for line in reader.lines() {
+            let line = line?;
+            if line.len() > 0 {
+                self.ser.writeln(line)?;
+                initresp(&mut self.ser)?;
+            }
+        }
+        Ok(())
     }
 }
 
