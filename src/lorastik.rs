@@ -39,7 +39,6 @@ enum LState {
 pub struct LoraStik {
     ser: LoraSer,
     readerlinesrx: crossbeam_channel::Receiver<String>,
-    writerlinestx: crossbeam_channel::Sender<String>,     // prevents data races
     readeroutput: crossbeam_channel::Sender<Vec<u8>>,
     txblockstx: crossbeam_channel::Sender<Vec<u8>>,
     txblocksrx: crossbeam_channel::Receiver<Vec<u8>>
@@ -67,13 +66,6 @@ fn readerlinesthread(ser: LoraSer, tx: crossbeam_channel::Sender<String>) {
     }
 }
 
-fn writerlinesthread(ser: LoraSer, rx: crossbeam_channel::Receiver<String>) {
-    loop {
-        let line = rx.recv().unwrap();
-        ser.writeln(line).expect("Error writing line");
-    }
-}
-
 /// Assert that a given response didn't indicate an EOF, and that it
 /// matches the given text.  Return an IOError if either of these
 /// conditions aren't met.  The response type is as given by
@@ -89,13 +81,11 @@ pub fn assert_response(resp: String, expected: String) -> io::Result<()> {
 impl LoraStik {
     pub fn new(ser: LoraSer) -> (LoraStik, crossbeam_channel::Receiver<Vec<u8>>) {
         let (readerlinestx, readerlinesrx) = mpsc::channel();
-        let (writerlinestx, writerlinesrx) = mpsc::sync_channel(0);
         let (txblockstx, txblocksrx) = mpsc::channel();
 
         thread::spawn(move || readerlinesthread(ser, readerlinestx));
-        thread::spawn(move || writerlinesthread(ser, writerlinestx));
         
-        (LoraStik { ser, readercmdrx, readercmdtx, readeroutput, readerlinesrx, writerlinestx, txblockstx, txblocksrx}, readeroutputreader)
+        (LoraStik { ser, readercmdrx, readercmdtx, readeroutput, readerlinesrx, txblockstx, txblocksrx}, readeroutputreader)
     }
 
     pub fn radiocfg(&mut self) -> io::Result<()> {
@@ -105,7 +95,7 @@ impl LoraStik {
         for line in reader.lines() {
             let line = line?;
             if line.len() > 0 {
-                self.writerlinestx.send(line).unwrap();
+                self.ser.writeln(line)?;
                 initresp(self.readerlinesrx)?;
             }
         }
@@ -130,7 +120,7 @@ impl LoraStik {
                 }
             }
                 
-            self.writerlinestx.send(String::from("radio rx 0")).unwrap();
+            self.ser.writeln(String::from("radio rx 0"))?;
             let response = self.readerlinesrx.recv().unwrap();
             assert_response(response, "ok")?;
 
@@ -152,7 +142,7 @@ impl LoraStik {
                     let msg = msg.unwrap();
                     
                     // We have something to send.  First, we have to stop the receiver (rxstop).
-                    self.writerlinestx.send(String::from("radio rxstop"))?;
+                    self.ser.writeln(String::from("radio rxstop"))?;
                     let mut checkresp = self.readerlinesrx.recv().unwrap();
                     if checkresp.starts_with("radio_rx ") {
                         // We had a race.  A packet was coming in.  Decode and deal with it,
@@ -172,7 +162,7 @@ impl LoraStik {
                     let txstr = String::from("radio tx ");
                     let hexstr = hex::encode(msg);
                     txstr.push_str(&hexstr);
-                    self.writerlinestx.send(txstr);
+                    self.ser.writeln(txstr)?;
                     
                     // We get two responses from this.
                     let resp = self.readerlinesrx.recv().unwrap();
