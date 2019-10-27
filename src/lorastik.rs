@@ -39,8 +39,14 @@ enum LState {
 
 pub struct LoraStik {
     ser: LoraSer,
+
+    // Lines coming from the radio
     readerlinesrx: crossbeam_channel::Receiver<String>,
+
+    // Frames going to the app
     readeroutput: crossbeam_channel::Sender<Vec<u8>>,
+
+    // Blocks to transmit
     txblockstx: crossbeam_channel::Sender<Vec<u8>>,
     txblocksrx: crossbeam_channel::Receiver<Vec<u8>>
 }
@@ -70,7 +76,10 @@ pub fn assert_response(resp: String, expected: String) -> io::Result<()> {
 }
 
 impl LoraStik {
-    pub fn new(mut ser: LoraSer) -> (LoraStik, crossbeam_channel::Receiver<Vec<u8>>) {
+    /// Creates a new LoraStik.  Returns an instance to be used for sending,
+    /// as well as a separate receiver to be used in a separate thread to handle
+    /// incoming frames.
+    pub fn new(ser: LoraSer) -> (LoraStik, crossbeam_channel::Receiver<Vec<u8>>) {
         let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
         let (txblockstx, txblocksrx) = crossbeam_channel::unbounded();
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();

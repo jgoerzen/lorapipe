@@ -24,6 +24,7 @@ use log::*;
 
 mod ser;
 mod lorastik;
+mod pipe;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -33,11 +34,12 @@ fn main() {
         exit(255);
     }
 
-    WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr());
+    WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr()).expect("Failed to init log");
     info!("lora starting");
 
     let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
-    let (mut lorastik, mut radioreceivers) = lorastik::LoraStik::new(loraser);
-    lorastik.radiocfg().expect("Failed to configure radio");
+    let (mut ls, mut radioreceiver) = lorastik::LoraStik::new(loraser);
+    ls.radiocfg().expect("Failed to configure radio");
+    pipe::stdintolora(&mut ls);
     
 }
