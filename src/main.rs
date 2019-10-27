@@ -21,6 +21,7 @@ use std::process::exit;
 use simplelog::*;
 use std::io;
 use log::*;
+use std::thread;
 
 mod ser;
 mod lorastik;
@@ -40,6 +41,8 @@ fn main() {
     let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
     let (mut ls, mut radioreceiver) = lorastik::LoraStik::new(loraser);
     ls.radiocfg().expect("Failed to configure radio");
-    pipe::stdintolora(&mut ls);
+
+    thread::spawn(move || pipe::loratostdout(radioreceiver));
+    pipe::stdintolora(&mut ls).expect("Failure in stdintolora");
     
 }
