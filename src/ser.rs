@@ -21,9 +21,12 @@ use std::io;
 use serial;
 use std::io::{BufReader, BufRead, Write};
 use log::*;
+use std::sync::{Arc, Mutex};
 
+#[derive(Clone)]
 pub struct LoraSer {
-    pub br: BufReader<serial::SystemPort>,
+    // BufReader can't be cloned.  Sigh.
+    pub br: Arc<Mutex<BufReader<serial::SystemPort>>>,
     pub portname: String
 }
 
@@ -40,7 +43,7 @@ impl LoraSer {
             settings.set_flow_control(serial::FlowNone);
             Ok(())
         })?;
-        Ok(LoraSer {br: BufReader::new(port),
+        Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(port))),
                     portname: String::from(portname)})
     }
 
@@ -48,7 +51,7 @@ impl LoraSer {
     /// None if EOF reached.
     pub fn readln(&mut self) -> io::Result<Option<String>> {
         let mut buf = String::new();
-        let size = self.br.read_line(&mut buf)?;
+        let size = self.br.lock().unwrap().read_line(&mut buf)?;
         if size == 0 {
             debug!("{}: Received EOF from serial port", self.portname); 
             Ok(None)
@@ -63,9 +66,8 @@ impl LoraSer {
     pub fn writeln(&mut self, mut data: String) -> io::Result<()> {
         trace!("{} SEROUT: {}", self.portname, data);
         data.push_str("\r\n");
-        let serport = self.br.get_mut();
-        serport.write_all(data.as_bytes())?;
-        serport.flush()
+        self.br.lock().unwrap().get_mut().write_all(data.as_bytes())?;
+        self.br.lock().unwrap().get_mut().flush()
     }
 }
 

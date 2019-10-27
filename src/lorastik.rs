@@ -45,7 +45,7 @@ pub struct LoraStik {
     txblocksrx: crossbeam_channel::Receiver<Vec<u8>>
 }
 
-fn readerlinesthread(ser: &mut LoraSer, tx: crossbeam_channel::Sender<String>) {
+fn readerlinesthread(mut ser: LoraSer, tx: crossbeam_channel::Sender<String>) {
     loop {
         let line = ser.readln().expect("Error reading line");
         if let Some(l) = line {
@@ -75,7 +75,9 @@ impl LoraStik {
         let (txblockstx, txblocksrx) = crossbeam_channel::unbounded();
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
 
-        thread::spawn(move || readerlinesthread(&mut ser, readerlinestx));
+        let ser2 = ser.clone();
+        
+        thread::spawn(move || readerlinesthread(ser2, readerlinestx));
         
         (LoraStik { ser, readeroutput, readerlinesrx, txblockstx, txblocksrx}, readeroutputreader)
     }
