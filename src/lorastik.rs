@@ -102,13 +102,32 @@ impl LoraStik {
         Ok(())
     }
 
+    /// Utililty function to handle actual sending.  Assumes radio is idle.
+    fn dosend(&mut self, data: Vec<u8>) -> io::Result<()> {
+        // Now, send the mesage.
+        let txstr = String::from("radio tx ");
+        let hexstr = hex::encode(msg);
+        txstr.push_str(&hexstr);
+        self.ser.writeln(txstr)?;
+        
+        // We get two responses from this.
+        let resp = self.readerlinesrx.recv().unwrap();
+        assert_response(resp, String::from("ok"))?;
+        
+        // Second.
+        let resp = self.readerlinesrx.recv().unwrap();
+        assert_response(resp, String::from("radio_tx_ok"));
+    }
+    
     pub fn readerthread(&mut self) -> io::Result<()> {
         loop {
-            // Do we have anything to send?
+            // Do we have anything to send?  Check at the top and keep checking
+            // here so we send as much as possible before going back into read
+            // mode.
             let r = self.txblocksrx.try_recv();
             match r {
                 Ok(data) => {
-                    dosend(self.writerlinestx, data);
+                    self.dosend(data)?;
                     continue;
                 },
                 Err(e) => {
@@ -119,29 +138,39 @@ impl LoraStik {
                     // Otherwise - nothing to write, go on through.
                 }
             }
-                
+            mem::drop(r); // don't need this anymore.  Prevent it from being used
+
+            // Enter read mode
+            
             self.ser.writeln(String::from("radio rx 0"))?;
             let response = self.readerlinesrx.recv().unwrap();
             assert_response(response, String::from("ok"))?;
 
             // Now we wait for either a write request or data.
 
-            select! {
-                recv(self.readerlinesrx) -> msg => {
-                    let msg = msg.unwrap();
+            let mut sel = crossbeam_channel::Select::new();
+            let readeridx = sel.recv(&self.readerlinesrx);
+            let blocksidx = sel.recv(&self.txblocksrx);
+            match sel.ready() {
+                i if i == readeridx => {
+                    // We have data coming in from the radio.
+                    
+                    let msg = self.readerlinesrx.recv.unwrap();
                     if msg.starts_with("radio_rx ") {
                         if let Ok(decoded) = hex::decode(&msg.as_bytes()[10..]) {
                             self.readeroutput.send(decoded).unwrap();
                         } else {
                             return Err(mkerror("Error with hex decoding"));
                         }
-                    },
+                    } else if msg == String::from("radio_err") {
+                        // time out.  Harmless.
+                        continue;
+                    }
                 },
-                
-                recv(self.txblocksrx) -> msg => {
-                    let msg = msg.unwrap();
-                    
-                    // We have something to send.  First, we have to stop the receiver (rxstop).
+                i if i == blocksidx => {
+                    // We have something to send.  Stop the receiver and then go
+                    // back to the top of the loop to handle it.
+
                     self.ser.writeln(String::from("radio rxstop"))?;
                     let mut checkresp = self.readerlinesrx.recv().unwrap();
                     if checkresp.starts_with("radio_rx ") {
@@ -158,20 +187,8 @@ impl LoraStik {
                     // Now, checkresp should hold 'ok'.
                     assert_response(checkkresp, String::from("ok"))?;
                     
-                    // Now, send the mesage.
-                    let txstr = String::from("radio tx ");
-                    let hexstr = hex::encode(msg);
-                    txstr.push_str(&hexstr);
-                    self.ser.writeln(txstr)?;
-                    
-                    // We get two responses from this.
-                    let resp = self.readerlinesrx.recv().unwrap();
-                    assert_response(resp, String::from("ok"))?;
-                    
-                    // Second.
-                    let resp = self.readerlinesrx.recv().unwrap();
-                    assert_response(resp, String::from("radio_tx_ok"));
-                }
+                },
+                _ => panic!("Invalid response from sel.ready()"),
             }
         }
     }
