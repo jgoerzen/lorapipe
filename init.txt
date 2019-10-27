@@ -1,0 +1,10 @@
+sys get ver
+mac pause
+radio get mod
+radio get freq
+radio get sf
+radio set pwr 20
+radio set sf sf12
+radio set bw 125
+radio set cr 4/5
+radio set wdt 60000
