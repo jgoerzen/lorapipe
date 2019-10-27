@@ -26,3 +26,5 @@ edition = "2018"
 serial = "0.4"
 log = "0.4"
 simplelog = {version = "^0.7.4", default-features = false}
+hex = "0.4.0"
+

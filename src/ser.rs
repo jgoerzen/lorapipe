@@ -23,8 +23,8 @@ use std::io::{BufReader, BufRead, Write};
 use log::*;
 
 pub struct LoraSer {
-    br: BufReader<serial::SystemPort>,
-    portname: String
+    pub br: BufReader<serial::SystemPort>,
+    pub portname: String
 }
 
 impl LoraSer {
