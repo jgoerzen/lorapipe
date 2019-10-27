@@ -24,7 +24,7 @@ const MAXFRAME: usize = 51;
 
 /// A thread for stdin processing
 pub fn stdintolora(ls: &mut LoraStik) -> io::Result<()> {
-    let mut stdin = io::stdin();
+    let stdin = io::stdin();
     let mut br = io::BufReader::new(stdin);
 
     let mut buf = vec![0u8; 8192];

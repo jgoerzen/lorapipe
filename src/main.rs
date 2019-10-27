@@ -39,12 +39,12 @@ fn main() {
     info!("lora starting");
 
     let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
-    let (mut ls, mut radioreceiver) = lorastik::LoraStik::new(loraser);
+    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser);
     ls.radiocfg().expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();
     thread::spawn(move || pipe::loratostdout(radioreceiver).expect("Failure in loratostdout"));
     thread::spawn(move || pipe::stdintolora(&mut ls2).expect("Failure in stdintolora"));
-    ls.readerthread();
+    ls.readerthread().expect("Failure in readerthread");
     
 }

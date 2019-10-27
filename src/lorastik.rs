@@ -22,10 +22,8 @@ use std::fs;
 use std::io::{BufRead, BufReader, Error, ErrorKind};
 use std::io;
 use crossbeam_channel;
-use crossbeam_channel::select;
 use hex;
 use std::thread;
-use std::mem;
 
 pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
