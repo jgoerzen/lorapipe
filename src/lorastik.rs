@@ -207,8 +207,8 @@ impl LoraStik {
         }
     }
 
-    pub fn transmit(&mut self, data: Vec<u8>)  {
-        self.txblockstx.send(data).unwrap();
+    pub fn transmit(&mut self, data: &[u8])  {
+        self.txblockstx.send(data.to_vec()).unwrap();
     }
 }
 
