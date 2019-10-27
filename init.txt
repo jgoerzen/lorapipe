@@ -1,4 +1,5 @@
 sys get ver
+mac reset
 mac pause
 radio get mod
 radio get freq

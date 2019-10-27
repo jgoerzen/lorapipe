@@ -39,5 +39,5 @@ fn main() {
     let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
     let (mut lorastik, mut radioreceivers) = lorastik::LoraStik::new(loraser);
     lorastik.radiocfg().expect("Failed to configure radio");
-        
+    
 }

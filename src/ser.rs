@@ -63,7 +63,8 @@ impl LoraSer {
         trace!("{} SEROUT: {}", self.portname, data);
         data.push_str("\r\n");
         let serport = self.br.get_mut();
-        serport.write_all(data.as_bytes())
+        serport.write_all(data.as_bytes())?;
+        serport.flush()
     }
 }
 
