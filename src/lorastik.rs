@@ -25,6 +25,7 @@ use crossbeam_channel;
 use crossbeam_channel::select;
 use hex;
 use std::thread;
+use std::mem;
 
 pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
@@ -44,17 +45,7 @@ pub struct LoraStik {
     txblocksrx: crossbeam_channel::Receiver<Vec<u8>>
 }
 
-/// Utility to read the response from initialization
-fn initresp(rx: crossbeam_channel::Receiver<String>) -> io::Result<()> {
-    let line = rx.recv().unwrap();
-    if line == "invalid_param" {
-        Err(mkerror("Bad response from radio during initialization"))
-    } else {
-        Ok(())
-    }
-}
-
-fn readerlinesthread(ser: LoraSer, tx: crossbeam_channel::Sender<String>) {
+fn readerlinesthread(ser: &mut LoraSer, tx: crossbeam_channel::Sender<String>) {
     loop {
         let line = ser.readln().expect("Error reading line");
         if let Some(l) = line {
@@ -79,13 +70,24 @@ pub fn assert_response(resp: String, expected: String) -> io::Result<()> {
 }
 
 impl LoraStik {
-    pub fn new(ser: LoraSer) -> (LoraStik, crossbeam_channel::Receiver<Vec<u8>>) {
-        let (readerlinestx, readerlinesrx) = mpsc::channel();
-        let (txblockstx, txblocksrx) = mpsc::channel();
+    pub fn new(mut ser: LoraSer) -> (LoraStik, crossbeam_channel::Receiver<Vec<u8>>) {
+        let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
+        let (txblockstx, txblocksrx) = crossbeam_channel::unbounded();
+        let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
 
-        thread::spawn(move || readerlinesthread(ser, readerlinestx));
+        thread::spawn(move || readerlinesthread(&mut ser, readerlinestx));
         
-        (LoraStik { ser, readercmdrx, readercmdtx, readeroutput, readerlinesrx, txblockstx, txblocksrx}, readeroutputreader)
+        (LoraStik { ser, readeroutput, readerlinesrx, txblockstx, txblocksrx}, readeroutputreader)
+    }
+
+    /// Utility to read the response from initialization
+    fn initresp(&mut self) -> io::Result<()> {
+        let line = self.readerlinesrx.recv().unwrap();
+        if line == "invalid_param" {
+            Err(mkerror("Bad response from radio during initialization"))
+        } else {
+            Ok(())
+        }
     }
 
     pub fn radiocfg(&mut self) -> io::Result<()> {
@@ -96,7 +98,7 @@ impl LoraStik {
             let line = line?;
             if line.len() > 0 {
                 self.ser.writeln(line)?;
-                initresp(self.readerlinesrx)?;
+                self.initresp()?;
             }
         }
         Ok(())
@@ -105,8 +107,8 @@ impl LoraStik {
     /// Utililty function to handle actual sending.  Assumes radio is idle.
     fn dosend(&mut self, data: Vec<u8>) -> io::Result<()> {
         // Now, send the mesage.
-        let txstr = String::from("radio tx ");
-        let hexstr = hex::encode(msg);
+        let mut txstr = String::from("radio tx ");
+        let hexstr = hex::encode(data);
         txstr.push_str(&hexstr);
         self.ser.writeln(txstr)?;
         
@@ -116,7 +118,9 @@ impl LoraStik {
         
         // Second.
         let resp = self.readerlinesrx.recv().unwrap();
-        assert_response(resp, String::from("radio_tx_ok"));
+        assert_response(resp, String::from("radio_tx_ok"))?;
+
+        Ok(())
     }
     
     pub fn readerthread(&mut self) -> io::Result<()> {
@@ -133,12 +137,11 @@ impl LoraStik {
                 Err(e) => {
                     if e.is_disconnected() {
                         // other threads crashed
-                        Err(e).unwrap();
+                        r.unwrap();
                     }
                     // Otherwise - nothing to write, go on through.
                 }
             }
-            mem::drop(r); // don't need this anymore.  Prevent it from being used
 
             // Enter read mode
             
@@ -155,7 +158,7 @@ impl LoraStik {
                 i if i == readeridx => {
                     // We have data coming in from the radio.
                     
-                    let msg = self.readerlinesrx.recv.unwrap();
+                    let msg = self.readerlinesrx.recv().unwrap();
                     if msg.starts_with("radio_rx ") {
                         if let Ok(decoded) = hex::decode(&msg.as_bytes()[10..]) {
                             self.readeroutput.send(decoded).unwrap();
@@ -185,7 +188,7 @@ impl LoraStik {
                     }
                     
                     // Now, checkresp should hold 'ok'.
-                    assert_response(checkkresp, String::from("ok"))?;
+                    assert_response(checkresp, String::from("ok"))?;
                     
                 },
                 _ => panic!("Invalid response from sel.ready()"),

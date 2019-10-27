@@ -40,7 +40,8 @@ impl LoraSer {
             settings.set_flow_control(serial::FlowNone);
             Ok(())
         })?;
-        Ok(LoraSer {br: BufReader::new(port), portname: String::from(portname)})
+        Ok(LoraSer {br: BufReader::new(port),
+                    portname: String::from(portname)})
     }
 
     /// Read a line from the port.  Return it with EOL characters removed.
