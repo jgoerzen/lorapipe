@@ -118,7 +118,7 @@ impl LoraStik {
         txstr.push_str(&hexstr);
 
         // Give receiver a change to process.
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(50));
         self.ser.writeln(txstr)?;
         
         // We get two responses from this.

@@ -9,7 +9,7 @@ radio get bw
 radio get cr
 radio get wdt
 radio set pwr 20
-radio set sf sf8
-radio set bw 500
+radio set sf sf12
+radio set bw 125
 radio set cr 4/5
 radio set wdt 60000
