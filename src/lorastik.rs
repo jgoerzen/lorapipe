@@ -24,6 +24,7 @@ use std::io;
 use crossbeam_channel;
 use hex;
 use std::thread;
+use std::time::Duration;
 
 pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
@@ -115,6 +116,9 @@ impl LoraStik {
         let mut txstr = String::from("radio tx ");
         let hexstr = hex::encode(data);
         txstr.push_str(&hexstr);
+
+        // Give receiver a change to process.
+        thread::sleep(Duration::from_millis(100));
         self.ser.writeln(txstr)?;
         
         // We get two responses from this.

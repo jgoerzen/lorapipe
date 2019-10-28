@@ -72,7 +72,6 @@ impl LoraSer {
         trace!("{} SEROUT: {}", self.portname, data);
         data.push_str("\r\n");
         // Give the receiver a chance to process
-        thread::sleep(Duration::from_millis(100));
         self.swrite.lock().unwrap().write_all(data.as_bytes())?;
         self.swrite.lock().unwrap().flush()
     }
