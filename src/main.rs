@@ -40,10 +40,9 @@ fn main() {
 
     let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
     let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser);
+    ls.radiocfg().expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();
-    
-    ls.radiocfg().expect("Failed to configure radio");
 
     thread::spawn(move || pipe::loratostdout(radioreceiver).expect("Failure in loratostdout"));
     thread::spawn(move || ls2.readerthread().expect("Failure in readerthread"));    
