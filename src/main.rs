@@ -26,6 +26,7 @@ use std::thread;
 mod ser;
 mod lorastik;
 mod pipe;
+mod ping;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -39,13 +40,20 @@ fn main() {
     info!("lora starting");
 
     let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
-    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser);
+    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, true);
     ls.radiocfg().expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();
-
     thread::spawn(move || ls2.readerthread().expect("Failure in readerthread"));
-    thread::spawn(move || pipe::stdintolora(&mut ls).expect("Failure in stdintolora"));
-    pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
+
+    if args[1] == String::from("pipe") {
+        thread::spawn(move || pipe::stdintolora(&mut ls).expect("Failure in stdintolora"));
+        pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
+    } else if args[1] == String::from("ping") {
+        thread::spawn(move || ping::genpings(&mut ls).expect("Failure in genpings"));
+        pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
+    } else if args[1] == String::from("pong") {
+        ping::pong(&mut ls, radioreceiver).expect("Failure in loratostdout");
+    }
     
 }

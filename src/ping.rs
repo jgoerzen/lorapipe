@@ -17,38 +17,33 @@
 
 use std::io;
 use std::io::{Read, Write};
-use crate::lorastik::LoraStik;
+use crate::lorastik::{LoraStik, ReceivedFrames};
 use crossbeam_channel;
+use std::thread;
+use std::time::Duration;
 
-const MAXFRAME: usize = 51;
+const INTERVAL: u64 = 10;
 
-/// A thread for stdin processing
-pub fn stdintolora(ls: &mut LoraStik) -> io::Result<()> {
-    let stdin = io::stdin();
-    let mut br = io::BufReader::new(stdin);
-
-    let mut buf = vec![0u8; 8192];
-
+pub fn genpings(ls: &mut LoraStik) -> io::Result<()> {
+    let mut counter: u64 = 1;
     loop {
-        let res = br.read(&mut buf)?;
-        if res == 0 {
-            // EOF
-            return Ok(());
-        }
-
-        for chunk in buf[0..res].chunks(MAXFRAME) {
-            ls.transmit(&chunk);
-        }
+        let sendstr = format!("Ping {}", counter);
+        println!("SEND: {}", sendstr);
+        ls.transmit(&sendstr.as_bytes());
+        thread::sleep(Duration::from_secs(INTERVAL));
+        counter += 1;
     }
 }
 
-pub fn loratostdout(receiver: crossbeam_channel::Receiver<Vec<u8>>) -> io::Result<()> {
+/// Reply to pings
+pub fn pong(ls: &mut LoraStik, receiver: crossbeam_channel::Receiver<ReceivedFrames>) -> io::Result<()> {
     let mut stdout = io::stdout();
 
     loop {
         let data = receiver.recv().unwrap();
-        stdout.write_all(&data)?;
-        stdout.flush()?;
+        let resp = format!("Pong {}, {:?}", String::from_utf8_lossy(&data.0), data.1);
+        println!("SEND: {}", resp);
+        ls.transmit(resp.as_bytes());
     }
 }
 

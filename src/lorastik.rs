@@ -30,6 +30,9 @@ pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReceivedFrames(pub Vec<u8>, pub Option<(String, String)>);
+
 #[derive(Clone)]
 pub struct LoraStik {
     ser: LoraSer,
@@ -38,13 +41,17 @@ pub struct LoraStik {
     readerlinesrx: crossbeam_channel::Receiver<String>,
 
     // Frames going to the app
-    readeroutput: crossbeam_channel::Sender<Vec<u8>>,
+    readeroutput: crossbeam_channel::Sender<ReceivedFrames>,
 
     // Blocks to transmit
     txblockstx: crossbeam_channel::Sender<Vec<u8>>,
-    txblocksrx: crossbeam_channel::Receiver<Vec<u8>>
+    txblocksrx: crossbeam_channel::Receiver<Vec<u8>>,
+
+    // Whether or not to read quality blocks
+    readqual: bool,
 }
 
+/// Reads the lines from the radio and sends them down the channel.
 fn readerlinesthread(mut ser: LoraSer, tx: crossbeam_channel::Sender<String>) {
     loop {
         let line = ser.readln().expect("Error reading line");
@@ -72,8 +79,9 @@ pub fn assert_response(resp: String, expected: String) -> io::Result<()> {
 impl LoraStik {
     /// Creates a new LoraStik.  Returns an instance to be used for sending,
     /// as well as a separate receiver to be used in a separate thread to handle
-    /// incoming frames.
-    pub fn new(ser: LoraSer) -> (LoraStik, crossbeam_channel::Receiver<Vec<u8>>) {
+    /// incoming frames.  The bool specifies whether or not to read the quality
+    /// parameters after a read.
+    pub fn new(ser: LoraSer, readqual: bool) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
         let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
         let (txblockstx, txblocksrx) = crossbeam_channel::unbounded();
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
@@ -82,7 +90,7 @@ impl LoraStik {
         
         thread::spawn(move || readerlinesthread(ser2, readerlinestx));
         
-        (LoraStik { ser, readeroutput, readerlinesrx, txblockstx, txblocksrx}, readeroutputreader)
+        (LoraStik { readqual, ser, readeroutput, readerlinesrx, txblockstx, txblocksrx}, readeroutputreader)
     }
 
     /// Utility to read the response from initialization
@@ -131,6 +139,27 @@ impl LoraStik {
 
         Ok(())
     }
+
+    fn handlerx(&mut self, msg: String, readqual: bool) -> io::Result<()> {
+        if msg.starts_with("radio_rx ") {
+            if let Ok(decoded) = hex::decode(&msg.as_bytes()[10..]) {
+                if readqual {
+                    self.ser.writeln(String::from("radio get snr"));
+                    let snr = self.readerlinesrx.recv().unwrap();
+                    self.ser.writeln(String::from("radio get rssi"));
+                    let rssi = self.readerlinesrx.recv().unwrap();
+                    self.readeroutput.send(ReceivedFrames(decoded, Some((snr, rssi)))).unwrap();
+                } else {
+                    self.readeroutput.send(ReceivedFrames(decoded, None)).unwrap();
+                }
+            } else {
+                return Err(mkerror("Error with hex decoding"));
+            }
+        }
+
+        // Might get radio_err here.  That's harmless.
+        Ok(())
+    }
     
     pub fn readerthread(&mut self) -> io::Result<()> {
         loop {
@@ -166,18 +195,8 @@ impl LoraStik {
             match sel.ready() {
                 i if i == readeridx => {
                     // We have data coming in from the radio.
-                    
                     let msg = self.readerlinesrx.recv().unwrap();
-                    if msg.starts_with("radio_rx ") {
-                        if let Ok(decoded) = hex::decode(&msg.as_bytes()[10..]) {
-                            self.readeroutput.send(decoded).unwrap();
-                        } else {
-                            return Err(mkerror("Error with hex decoding"));
-                        }
-                    } else if msg == String::from("radio_err") {
-                        // time out.  Harmless.
-                        continue;
-                    }
+                    self.handlerx(msg, self.readqual)?;
                 },
                 i if i == blocksidx => {
                     // We have something to send.  Stop the receiver and then go
@@ -187,13 +206,10 @@ impl LoraStik {
                     let mut checkresp = self.readerlinesrx.recv().unwrap();
                     if checkresp.starts_with("radio_rx ") {
                         // We had a race.  A packet was coming in.  Decode and deal with it,
-                        // then look for the 'ok' from rxstop.
-                        if let Ok(decoded) = hex::decode(&checkresp.as_bytes()[10..]) {
-                            self.readeroutput.send(decoded).unwrap();
-                            checkresp = self.readerlinesrx.recv().unwrap();
-                        } else {
-                            return Err(mkerror("Error with hex decoding"));
-                        }
+                        // then look for the 'ok' from rxstop.  We can't try to read the quality in
+                        // this scenario.
+                        self.handlerx(checkresp, false)?;
+                        checkresp = self.readerlinesrx.recv().unwrap();
                     }
                     
                     // Now, checkresp should hold 'ok'.

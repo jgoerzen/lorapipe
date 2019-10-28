@@ -17,7 +17,7 @@
 
 use std::io;
 use std::io::{Read, Write};
-use crate::lorastik::LoraStik;
+use crate::lorastik::{LoraStik, ReceivedFrames};
 use crossbeam_channel;
 
 const MAXFRAME: usize = 51;
@@ -42,12 +42,12 @@ pub fn stdintolora(ls: &mut LoraStik) -> io::Result<()> {
     }
 }
 
-pub fn loratostdout(receiver: crossbeam_channel::Receiver<Vec<u8>>) -> io::Result<()> {
+pub fn loratostdout(receiver: crossbeam_channel::Receiver<ReceivedFrames>) -> io::Result<()> {
     let mut stdout = io::stdout();
 
     loop {
         let data = receiver.recv().unwrap();
-        stdout.write_all(&data)?;
+        stdout.write_all(&data.0)?;
         stdout.flush()?;
     }
 }
