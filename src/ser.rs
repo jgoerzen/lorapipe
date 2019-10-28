@@ -29,6 +29,7 @@ use std::thread;
 pub struct LoraSer {
     // BufReader can't be cloned.  Sigh.
     pub br: Arc<Mutex<BufReader<serial::SystemPort>>>,
+    pub swrite: serial::SystemPort,
     pub portname: String
 }
 
@@ -46,7 +47,10 @@ impl LoraSer {
             Ok(())
         })?;
         port.set_timeout(Duration::new(60 * 60 * 24 * 365 * 20, 0))?;
-        Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(port))),
+        let fd = port.as_raw_fd();
+        
+        Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(port.clone()))),
+                    swrite: port,
                     portname: String::from(portname)})
     }
 
@@ -69,8 +73,8 @@ impl LoraSer {
     pub fn writeln(&mut self, mut data: String) -> io::Result<()> {
         trace!("{} SEROUT: {}", self.portname, data);
         data.push_str("\r\n");
-        self.br.lock().unwrap().get_mut().write_all(data.as_bytes())?;
-        self.br.lock().unwrap().get_mut().flush()
+        self.swrite.write_all(data.as_bytes())?;
+        self.swrite.flush()
     }
 }
 
