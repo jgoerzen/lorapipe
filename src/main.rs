@@ -44,8 +44,8 @@ fn main() {
 
     let mut ls2 = ls.clone();
 
-    thread::spawn(move || pipe::loratostdout(radioreceiver).expect("Failure in loratostdout"));
-    thread::spawn(move || ls2.readerthread().expect("Failure in readerthread"));    
-    pipe::stdintolora(&mut ls).expect("Failure in stdintolora");
+    thread::spawn(move || ls2.readerthread().expect("Failure in readerthread"));
+    thread::spawn(move || pipe::stdintolora(&mut ls).expect("Failure in stdintolora"));
+    pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
     
 }

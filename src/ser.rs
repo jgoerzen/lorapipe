@@ -22,6 +22,7 @@ use std::io::{BufReader, BufRead, Write};
 use log::*;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::thread;
 
 #[derive(Clone)]
 pub struct LoraSer {
@@ -70,6 +71,8 @@ impl LoraSer {
     pub fn writeln(&mut self, mut data: String) -> io::Result<()> {
         trace!("{} SEROUT: {}", self.portname, data);
         data.push_str("\r\n");
+        // Give the receiver a chance to process
+        thread::sleep(Duration::from_millis(100));
         self.swrite.lock().unwrap().write_all(data.as_bytes())?;
         self.swrite.lock().unwrap().flush()
     }

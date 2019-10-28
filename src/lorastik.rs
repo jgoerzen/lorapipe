@@ -64,7 +64,7 @@ pub fn assert_response(resp: String, expected: String) -> io::Result<()> {
     if resp == expected {
         Ok(())
     } else {
-        Err(mkerror("Unexpected response"))
+        Err(mkerror(&format!("Unexpected response: got {}, expected {}", resp, expected)))
     }
 }
 
