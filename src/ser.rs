@@ -16,9 +16,8 @@
 
 */
 
-use serial::prelude::*;
 use std::io;
-use serial;
+use serialport::prelude::*;
 use std::io::{BufReader, BufRead, Write};
 use log::*;
 use std::sync::{Arc, Mutex};
@@ -28,8 +27,8 @@ use std::thread;
 #[derive(Clone)]
 pub struct LoraSer {
     // BufReader can't be cloned.  Sigh.
-    pub br: Arc<Mutex<BufReader<serial::SystemPort>>>,
-    pub swrite: serial::SystemPort,
+    pub br: Arc<Mutex<BufReader<Box<dyn SerialPort>>>>,
+    pub swrite: Arc<Mutex<Box<dyn SerialPort>>>,
     pub portname: String
 }
 
@@ -37,20 +36,19 @@ impl LoraSer {
 
     /// Initialize the serial system, configuring the port.
     pub fn new(portname: &str) -> io::Result<LoraSer> {
-        let mut port: serial::SystemPort = serial::open(portname)?;
-        port.reconfigure(&|settings| {
-            settings.set_baud_rate(serial::Baud57600)?;
-            settings.set_char_size(serial::Bits8);
-            settings.set_parity(serial::ParityNone);
-            settings.set_stop_bits(serial::Stop1);
-            settings.set_flow_control(serial::FlowNone);
-            Ok(())
-        })?;
-        port.set_timeout(Duration::new(60 * 60 * 24 * 365 * 20, 0))?;
-        let fd = port.as_raw_fd();
+        let settings = SerialPortSettings {
+            baud_rate: 57600,
+            data_bits: DataBits::Eight,
+            flow_control: FlowControl::None,
+            parity: Parity::None,
+            stop_bits: StopBits::One,
+            timeout: Duration::new(60 * 60 * 24 * 365 * 20, 0),
+        };
+        let mut readport = serialport::open_with_settings(portname, &settings)?;
+        let mut writeport = readport.try_clone()?;
         
-        Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(port.clone()))),
-                    swrite: port,
+        Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(readport))),
+                    swrite: Arc::new(Mutex::new(writeport)),
                     portname: String::from(portname)})
     }
 
@@ -73,8 +71,8 @@ impl LoraSer {
     pub fn writeln(&mut self, mut data: String) -> io::Result<()> {
         trace!("{} SEROUT: {}", self.portname, data);
         data.push_str("\r\n");
-        self.swrite.write_all(data.as_bytes())?;
-        self.swrite.flush()
+        self.swrite.lock().unwrap().write_all(data.as_bytes())?;
+        self.swrite.lock().unwrap().flush()
     }
 }
 
