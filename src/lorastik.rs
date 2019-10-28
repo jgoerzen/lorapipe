@@ -25,6 +25,8 @@ use crossbeam_channel;
 use hex;
 use std::thread;
 use std::time::Duration;
+use std::ascii::escape_default;
+use format_escape_default::format_escape_default;
 
 pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
@@ -126,7 +128,7 @@ impl LoraStik {
         txstr.push_str(&hexstr);
 
         // Give receiver a change to process.
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(100));
         self.ser.writeln(txstr)?;
         
         // We get two responses from this.
@@ -143,6 +145,7 @@ impl LoraStik {
     fn handlerx(&mut self, msg: String, readqual: bool) -> io::Result<()> {
         if msg.starts_with("radio_rx ") {
             if let Ok(decoded) = hex::decode(&msg.as_bytes()[10..]) {
+                trace!("DECODED: {}", format_escape_default(&decoded));
                 if readqual {
                     self.ser.writeln(String::from("radio get snr"));
                     let snr = self.readerlinesrx.recv().unwrap();
