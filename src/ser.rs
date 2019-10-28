@@ -22,6 +22,8 @@ use serial;
 use std::io::{BufReader, BufRead, Write};
 use log::*;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use std::thread;
 
 #[derive(Clone)]
 pub struct LoraSer {
@@ -34,7 +36,7 @@ impl LoraSer {
 
     /// Initialize the serial system, configuring the port.
     pub fn new(portname: &str) -> io::Result<LoraSer> {
-        let mut port = serial::open(portname)?;
+        let mut port: serial::SystemPort = serial::open(portname)?;
         port.reconfigure(&|settings| {
             settings.set_baud_rate(serial::Baud57600)?;
             settings.set_char_size(serial::Bits8);
@@ -43,6 +45,7 @@ impl LoraSer {
             settings.set_flow_control(serial::FlowNone);
             Ok(())
         })?;
+        port.set_timeout(Duration::new(60 * 60 * 24 * 365 * 20, 0))?;
         Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(port))),
                     portname: String::from(portname)})
     }

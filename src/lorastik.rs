@@ -86,7 +86,9 @@ impl LoraStik {
 
     /// Utility to read the response from initialization
     fn initresp(&mut self) -> io::Result<()> {
+        trace!("in initresp");
         let line = self.readerlinesrx.recv().unwrap();
+        trace!("initresp: got {}", line);
         if line == "invalid_param" {
             Err(mkerror("Bad response from radio during initialization"))
         } else {
@@ -95,11 +97,13 @@ impl LoraStik {
     }
 
     pub fn radiocfg(&mut self) -> io::Result<()> {
+        debug!("Configuring radio");
         let f = fs::File::open("init.txt")?;
         let reader = BufReader::new(f);
 
         for line in reader.lines() {
             let line = line?;
+            debug!("Got line {}", line);
             if line.len() > 0 {
                 self.ser.writeln(line)?;
                 self.initresp()?;
