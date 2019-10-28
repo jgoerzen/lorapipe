@@ -22,7 +22,6 @@ use std::io::{BufReader, BufRead, Write};
 use log::*;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::thread;
 
 #[derive(Clone)]
 pub struct LoraSer {
@@ -44,8 +43,8 @@ impl LoraSer {
             stop_bits: StopBits::One,
             timeout: Duration::new(60 * 60 * 24 * 365 * 20, 0),
         };
-        let mut readport = serialport::open_with_settings(portname, &settings)?;
-        let mut writeport = readport.try_clone()?;
+        let readport = serialport::open_with_settings(portname, &settings)?;
+        let writeport = readport.try_clone()?;
         
         Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(readport))),
                     swrite: Arc::new(Mutex::new(writeport)),
