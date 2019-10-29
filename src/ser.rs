@@ -22,7 +22,6 @@ use std::io::{BufReader, BufRead, Write};
 use log::*;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::thread;
 
 #[derive(Clone)]
 pub struct LoraSer {

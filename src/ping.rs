@@ -16,7 +16,6 @@
 */
 
 use std::io;
-use std::io::{Read, Write};
 use crate::lorastik::{LoraStik, ReceivedFrames};
 use crossbeam_channel;
 use std::thread;
@@ -37,8 +36,6 @@ pub fn genpings(ls: &mut LoraStik) -> io::Result<()> {
 
 /// Reply to pings
 pub fn pong(ls: &mut LoraStik, receiver: crossbeam_channel::Receiver<ReceivedFrames>) -> io::Result<()> {
-    let mut stdout = io::stdout();
-
     loop {
         let data = receiver.recv().unwrap();
         let resp = format!("Pong {}, {:?}", String::from_utf8_lossy(&data.0), data.1);

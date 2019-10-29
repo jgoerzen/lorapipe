@@ -25,7 +25,6 @@ use crossbeam_channel;
 use hex;
 use std::thread;
 use std::time::{Duration, Instant};
-use std::ascii::escape_default;
 use format_escape_default::format_escape_default;
 
 /** The amount of time to pause before transmitting a packet.  The
@@ -177,7 +176,7 @@ impl LoraStik {
         assert_response(resp, String::from("ok"))?;
         
         // Second.
-        let resp = self.readerlinesrx.recv().unwrap();  // normally radio_tx_ok
+        self.readerlinesrx.recv().unwrap();  // normally radio_tx_ok
 
         Ok(())
     }
@@ -185,30 +184,27 @@ impl LoraStik {
     // Receive a message from the incoming radio channel and process it.
     fn handlerx(&mut self, msg: String, readqual: bool) -> io::Result<()> {
         if msg.starts_with("radio_rx ") {
-            if let Ok(decoded) = hex::decode(&msg.as_bytes()[10..]) {
+            if let Ok(mut decoded) = hex::decode(&msg.as_bytes()[10..]) {
                 trace!("DECODED: {}", format_escape_default(&decoded));
                 let radioqual = if readqual {
-                    self.ser.writeln(String::from("radio get snr"));
+                    self.ser.writeln(String::from("radio get snr"))?;
                     let snr = self.readerlinesrx.recv().unwrap();
-                    self.ser.writeln(String::from("radio get rssi"));
+                    self.ser.writeln(String::from("radio get rssi"))?;
                     let rssi = self.readerlinesrx.recv().unwrap();
                     Some((snr, rssi))
                 } else {
                     None
-                }
+                };
 
-                if decoded[0] == 1 {
+                let flag = decoded.remove(0);  // Remove the flag from the vec
+                if flag == 1 {
                     // More data is coming
                     self.txdelay = Some(Instant::now() + self.tx_prevention_timeout);
                 } else {
                     self.txdelay = None;
                 }
 
-                if readqual {
-                    self.readeroutput.send(ReceivedFrames(decoded, Some((snr, rssi)))).unwrap();
-                } else {
-                    self.readeroutput.send(ReceivedFrames(decoded, None)).unwrap();
-                }
+                self.readeroutput.send(ReceivedFrames(decoded, radioqual)).unwrap();
             } else {
                 return Err(mkerror("Error with hex decoding"));
             }
@@ -249,22 +245,24 @@ impl LoraStik {
             response = self.readerlinesrx.recv().unwrap();
         }
         assert_response(response, String::from("ok"))?;
+        Ok(())
     }
 
     fn rxstop(&mut self) -> io::Result<()> {
         self.ser.writeln(String::from("radio rxstop"))?;
-        let mut checkresp = self.readerlinesrx.recv().unwrap();
+        let checkresp = self.readerlinesrx.recv().unwrap();
         if checkresp.starts_with("radio_rx ") {
             // We had a race.  A packet was coming in.  Decode and deal with it,
             // then look for the 'ok' from rxstop.  We can't try to read the quality in
             // this scenario.
             self.handlerx(checkresp, false)?;
-            checkresp = self.readerlinesrx.recv().unwrap();
+            self.readerlinesrx.recv().unwrap();  // used to pop this into checkresp, but no need now.
         }
         
         // Now, checkresp should hold 'ok'.
         //  It might not be; I sometimes see radio_err here.  it's OK too.
         // assert_response(checkresp, String::from("ok"))?;
+        Ok(())
     }
     
     pub fn readerthread(&mut self) -> io::Result<()> {
@@ -273,11 +271,11 @@ impl LoraStik {
             // try to read and ignore all else.
             if let Some(delayamt) = self.txdelayrequired() {
                 // We can't transmit yet.  Just read, but with a time box.
-                self.enterrxmode();
+                self.enterrxmode()?;
                 let res = self.readerlinesrx.recv_timeout(delayamt);
                 match res {
-                    Some(msg) => {
-                        self.handlerx(msg)?;
+                    Ok(msg) => {
+                        self.handlerx(msg, self.readqual)?;
                         continue;
                     },
                     Err(e) => {
