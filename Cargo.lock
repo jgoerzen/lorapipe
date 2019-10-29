@@ -161,7 +161,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lora"
+name = "lorapipe"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -15,7 +15,7 @@
 
 
 [package]
-name = "lora"
+name = "lorapipe"
 version = "0.1.0"
 authors = ["John Goerzen <jgoerzen@complete.org>"]
 edition = "2018"
