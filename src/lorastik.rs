@@ -128,7 +128,7 @@ impl LoraStik {
         txstr.push_str(&hexstr);
 
         // Give receiver a change to process.
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(100));
         self.ser.writeln(txstr)?;
         
         // We get two responses from this.... though sometimes a lingering radio_err also.
@@ -139,8 +139,7 @@ impl LoraStik {
         assert_response(resp, String::from("ok"))?;
         
         // Second.
-        let resp = self.readerlinesrx.recv().unwrap();
-        assert_response(resp, String::from("radio_tx_ok"))?;
+        let resp = self.readerlinesrx.recv().unwrap();  // normally radio_tx_ok
 
         Ok(())
     }
