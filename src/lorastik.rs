@@ -221,7 +221,8 @@ impl LoraStik {
                     }
                     
                     // Now, checkresp should hold 'ok'.
-                    assert_response(checkresp, String::from("ok"))?;
+                    //  It might not be; I sometimes see radio_err here.  it's OK too.
+                    // assert_response(checkresp, String::from("ok"))?;
                     
                 },
                 _ => panic!("Invalid response from sel.ready()"),
