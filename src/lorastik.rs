@@ -187,7 +187,12 @@ impl LoraStik {
             // Enter read mode
             
             self.ser.writeln(String::from("radio rx 0"))?;
-            let response = self.readerlinesrx.recv().unwrap();
+            let mut response = self.readerlinesrx.recv().unwrap();
+
+            // For some reason, sometimes we get a radio_err here, then an OK.  Ignore it.
+            if response == String::from("radio_err") {
+                response = self.readerlinesrx.recv().unwrap();
+            }
             assert_response(response, String::from("ok"))?;
 
             // Now we wait for either a write request or data.

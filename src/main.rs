@@ -40,7 +40,7 @@ fn main() {
     info!("lora starting");
 
     let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
-    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, true);
+    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, false);
     ls.radiocfg().expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();

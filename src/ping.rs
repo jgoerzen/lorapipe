@@ -22,7 +22,7 @@ use crossbeam_channel;
 use std::thread;
 use std::time::Duration;
 
-const INTERVAL: u64 = 10;
+const INTERVAL: u64 = 5;
 
 pub fn genpings(ls: &mut LoraStik) -> io::Result<()> {
     let mut counter: u64 = 1;

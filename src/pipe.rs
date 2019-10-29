@@ -20,7 +20,7 @@ use std::io::{Read, Write};
 use crate::lorastik::{LoraStik, ReceivedFrames};
 use crossbeam_channel;
 
-const MAXFRAME: usize = 51;
+const MAXFRAME: usize = 81;
 
 /// A thread for stdin processing
 pub fn stdintolora(ls: &mut LoraStik) -> io::Result<()> {
