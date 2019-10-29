@@ -28,21 +28,6 @@ use std::time::{Duration, Instant};
 use format_escape_default::format_escape_default;
 use std::path::PathBuf;
 
-/** The amount of time to pause before transmitting a packet.  The
-main purpose of this is to give the othe rradio a chance to finish
-decoding the previous packet, send it to the OS, and re-enter RX mode.
-A secondary purpose is to give the duplex logic a chance to see if
-anything else is coming in.  Given in ms.
-*/
-const WAIT_BEFORE_TX_MILLIS: u64 = 50;
-
-/** The amount of time to wait before transmitting after receiving a
-packet that indicated more data was forthcoming.  The purpose of this is
-to compensate for a situation in which the "last" incoming packet was lost,
-to prevent the receiver from waiting forever for more packets before
-transmitting.  Given in ms. */
-const TX_PREVENTION_TIMEOUT_MILLIS: u64 = 1000;
-
 pub fn mkerror(msg: &str) -> Error {
     Error::new(ErrorKind::Other, msg)
 }
@@ -75,12 +60,12 @@ pub struct LoraStik {
     txdelay: Option<Instant>,
 
     // The wait before transmitting.  Initialized from
-    // [`WAIT_BEFORE_TX_MILLIS`].
-    wait_before_tx: Duration,
+    // [`txwait`].
+    txwait: Duration,
     
     // The transmit prevention timeout.  Initialized from
-    // [`TX_PREVENTION_TIMEOUT_MILLIS`].
-    tx_prevention_timeout: Duration,
+    // [`eotwait`].
+    eotwait: Duration,
 }
 
 /// Reads the lines from the radio and sends them down the channel to
@@ -114,7 +99,7 @@ impl LoraStik {
     /// as well as a separate receiver to be used in a separate thread to handle
     /// incoming frames.  The bool specifies whether or not to read the quality
     /// parameters after a read.
-    pub fn new(ser: LoraSer, readqual: bool) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
+    pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
         let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
         let (txblockstx, txblocksrx) = crossbeam_channel::unbounded();
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
@@ -125,8 +110,8 @@ impl LoraStik {
         
         (LoraStik { readqual, ser, readeroutput, readerlinesrx, txblockstx, txblocksrx,
                     txdelay: None,
-                    wait_before_tx: Duration::from_millis(WAIT_BEFORE_TX_MILLIS),
-                    tx_prevention_timeout: Duration::from_millis(TX_PREVENTION_TIMEOUT_MILLIS)}, readeroutputreader)
+                    txwait: Duration::from_millis(txwait),
+                    eotwait: Duration::from_millis(eotwait)}, readeroutputreader)
     }
 
     /// Utility to read the response from initialization
@@ -188,7 +173,7 @@ impl LoraStik {
     /// Utililty function to handle actual sending.  Assumes radio is idle.
     fn dosend(&mut self, data: Vec<u8>) -> io::Result<()> {
         // Give receiver a change to process.
-        thread::sleep(self.wait_before_tx);
+        thread::sleep(self.txwait);
 
         let mut flag: u8 = 0;
         if !self.txblocksrx.is_empty() {
@@ -231,7 +216,7 @@ impl LoraStik {
                 let flag = decoded.remove(0);  // Remove the flag from the vec
                 if flag == 1 {
                     // More data is coming
-                    self.txdelay = Some(Instant::now() + self.tx_prevention_timeout);
+                    self.txdelay = Some(Instant::now() + self.eotwait);
                 } else {
                     self.txdelay = None;
                 }
