@@ -139,6 +139,16 @@ impl LoraStik {
     }
 
     pub fn radiocfg(&mut self) -> io::Result<()> {
+        // First, send it an invalid command.  Then, consume everything it sends back
+        self.ser.writeln(String::from("INVALIDCOMMAND"))?;
+
+        // Give it a chance to do its thing.
+        thread::sleep(Duration::from_secs(1));
+
+        // Consume all data.
+        while let Ok(_) = self.readerlinesrx.try_recv() {
+        }
+                         
         debug!("Configuring radio");
         let f = fs::File::open("init.txt")?;
         let reader = BufReader::new(f);
