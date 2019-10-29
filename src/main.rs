@@ -16,8 +16,6 @@
 
 */
 
-use std::env;
-use std::process::exit;
 use simplelog::*;
 use std::io;
 use log::*;
@@ -28,32 +26,75 @@ mod lorastik;
 mod pipe;
 mod ping;
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 3 {
-        println!("Syntax: lora command portname");
-        println!("Valid commands are: pipe ping pong kiss");
-        exit(255);
-    }
+use std::path::PathBuf;
+use structopt::StructOpt;
 
-    WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr()).expect("Failed to init log");
+#[derive(Debug, StructOpt)]
+#[structopt(name = "lorapipe", about = "Tools for LoRa radios", author = "John Goerzen <jgoerzen@complete.org>")]
+struct Opt {
+    /// Activate debug mode
+    // short and long flags (-d, --debug) will be deduced from the field's name
+    #[structopt(short, long)]
+    debug: bool,
+
+    /// Read and log quality data after receiving packets
+    #[structopt(long)]
+    readqual: bool,
+    
+    /// Radio initialization command file
+    #[structopt(long, parse(from_os_str))]
+    initfile: Option<PathBuf>,
+
+    #[structopt(parse(from_os_str))]
+    /// Serial port to use to communicate with radio
+    port: PathBuf,
+
+    #[structopt(subcommand)]
+    cmd: Command
+}
+
+#[derive(Debug, StructOpt)]
+enum Command {
+    /// Pipe data across raios
+    Pipe {
+        /// Maximum frame size sent to radio
+        #[structopt(long, default_value = "99")]
+        maxpacketsize: usize,
+    },
+    /// Transmit ping requests
+    Ping,
+    /// Receive ping requests and transmit pongs
+    Pong,
+}
+
+fn main() {
+    let opt = Opt::from_args();
+    println!("{:?}", opt);
+
+    if opt.debug {
+        WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr()).expect("Failed to init log");
+    }
     info!("lora starting");
 
-    let loraser = ser::LoraSer::new(&args[2]).expect("Failed to initialize serial port");
-    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, false);
-    ls.radiocfg().expect("Failed to configure radio");
+    let loraser = ser::LoraSer::new(opt.port).expect("Failed to initialize serial port");
+    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, opt.readqual);
+    ls.radiocfg(opt.initfile).expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();
     thread::spawn(move || ls2.readerthread().expect("Failure in readerthread"));
 
-    if args[1] == String::from("pipe") {
-        thread::spawn(move || pipe::stdintolora(&mut ls).expect("Failure in stdintolora"));
-        pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
-    } else if args[1] == String::from("ping") {
-        thread::spawn(move || ping::genpings(&mut ls).expect("Failure in genpings"));
-        pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
-    } else if args[1] == String::from("pong") {
-        ping::pong(&mut ls, radioreceiver).expect("Failure in loratostdout");
+    match opt.cmd {
+        Command::Pipe{ maxpacketsize } => {
+            thread::spawn(move || pipe::stdintolora(&mut ls, maxpacketsize).expect("Failure in stdintolora"));
+            pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
+        },
+        Command::Ping => {
+            thread::spawn(move || ping::genpings(&mut ls).expect("Failure in genpings"));
+            pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
+        },
+        Command::Pong => {
+            ping::pong(&mut ls, radioreceiver).expect("Failure in loratostdout");
+        }
     }
-    
+
 }

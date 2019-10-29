@@ -26,6 +26,7 @@ use hex;
 use std::thread;
 use std::time::{Duration, Instant};
 use format_escape_default::format_escape_default;
+use std::path::PathBuf;
 
 /** The amount of time to pause before transmitting a packet.  The
 main purpose of this is to give the othe rradio a chance to finish
@@ -90,7 +91,7 @@ fn readerlinesthread(mut ser: LoraSer, tx: crossbeam_channel::Sender<String>) {
         if let Some(l) = line {
             tx.send(l).unwrap();
         } else {
-            debug!("{}: EOF", ser.portname);
+            debug!("{:?}: EOF", ser.portname);
             return;
         }
     }
@@ -138,7 +139,7 @@ impl LoraStik {
         }
     }
 
-    pub fn radiocfg(&mut self) -> io::Result<()> {
+    pub fn radiocfg(&mut self, initfile: Option<PathBuf>) -> io::Result<()> {
         // First, send it an invalid command.  Then, consume everything it sends back
         self.ser.writeln(String::from("INVALIDCOMMAND"))?;
 
@@ -150,11 +151,32 @@ impl LoraStik {
         }
                          
         debug!("Configuring radio");
-        let f = fs::File::open("init.txt")?;
-        let reader = BufReader::new(f);
+        let default = vec![
+            "sys get ver",
+            "mac reset",
+            "mac pause",
+            "radio get mod",
+            "radio get freq",
+            "radio get pwr",
+            "radio get sf",
+            "radio get bw",
+            "radio get cr",
+            "radio get wdt",
+            "radio set pwr 20",
+            "radio set sf sf12",
+            "radio set bw 125",
+            "radio set cr 4/5",
+            "radio set wdt 60000"];
 
-        for line in reader.lines() {
-            let line = line?;
+        let initlines: Vec<String> = if let Some(file) = initfile {
+            let f = fs::File::open(file)?;
+            let reader = BufReader::new(f);
+            reader.lines().map(|l| l.unwrap()).collect()
+        } else {
+            default.iter().map(|l| String::from(*l)).collect()
+        };
+
+        for line in initlines {
             if line.len() > 0 {
                 self.ser.writeln(line)?;
                 self.initresp()?;
