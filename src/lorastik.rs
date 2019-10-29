@@ -131,8 +131,11 @@ impl LoraStik {
         thread::sleep(Duration::from_millis(100));
         self.ser.writeln(txstr)?;
         
-        // We get two responses from this.
-        let resp = self.readerlinesrx.recv().unwrap();
+        // We get two responses from this.... though sometimes a lingering radio_err also.
+        let mut resp = self.readerlinesrx.recv().unwrap();
+        if resp == String::from("radio_err") {
+            resp = self.readerlinesrx.recv().unwrap();
+        }
         assert_response(resp, String::from("ok"))?;
         
         // Second.
