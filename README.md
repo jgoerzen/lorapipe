@@ -11,10 +11,6 @@ This requires a [LoStik](https://ronoth.com/lostik) or other Microchip
 RN2903- or RN2483-based or  device that has been updated to firmware 1.0.5.  Details
 in the documentation.
 
-# Data Rate
-
-https://www.rfwireless-world.com/calculators/LoRa-Data-Rate-Calculator.html
-
 # Copyright
 
     Copyright (C) 2019 John Goerzen <jgoerzen@complete.org>

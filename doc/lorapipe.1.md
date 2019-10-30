@@ -206,6 +206,12 @@ won't work as well.
 
 Make sure to specify `half-duplex true` in `/etc/uucp/port`.
 
+# INSTALLATION
+
+**lorapipe** is a Rust program and can be built by running **`cargo
+build --release`**.  Rust can be easily installed from
+<https://www.rust-lang.org/>. 
+
 # INVOCATION
 
 Every invocation of **lorapipe** requires at least the name of a
