@@ -202,7 +202,7 @@ impl LoraStik {
     fn handlerx(&mut self, msg: String, readqual: bool) -> io::Result<()> {
         if msg.starts_with("radio_rx ") {
             if let Ok(mut decoded) = hex::decode(&msg.as_bytes()[10..]) {
-                trace!("DECODED: {}", format_escape_default(&decoded));
+                // trace!("DECODED: {}", format_escape_default(&decoded));
                 let radioqual = if readqual {
                     self.ser.writeln(String::from("radio get snr"))?;
                     let snr = self.readerlinesrx.recv().unwrap();
