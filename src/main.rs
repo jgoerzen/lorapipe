@@ -88,7 +88,6 @@ enum Command {
 
 fn main() {
     let opt = Opt::from_args();
-    println!("{:?}", opt);
 
     if opt.debug {
         WriteLogger::init(LevelFilter::Trace, Config::default(), io::stderr()).expect("Failed to init log");
