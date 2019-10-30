@@ -52,7 +52,7 @@ struct Opt {
     A secondary purpose is to give the duplex logic a chance to see if
     anything else is coming in.  Given in ms.
      */
-    #[structopt(long, default_value = "50")]
+    #[structopt(long, default_value = "120")]
     txwait: u64,
 
     /// Amount of time (ms) to wait for end-of-transmission signal before transmitting

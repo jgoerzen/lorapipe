@@ -271,7 +271,10 @@ before the port and command on the command line.
    packet.  Due to processing delays on the receiving end, packets
    cannot be transmitted immediately back to back.  Increase this if
    you are seeing frequent receive errors for back-to-back packets,
-   which may be indicative of a late listen.
+   which may be indicative of a late listen.  Experimentation has
+   shown that a value of 120 is needed for very large packets, and is
+   the default.  You may be able to use 50ms or less if you are
+   sending small packets.
    
 *PORT*
 :  The name of the serial port to which the radio is attached.
