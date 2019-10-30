@@ -23,6 +23,10 @@ use log::*;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::path::PathBuf;
+use libc::tcsendbreak;
+use std::os::unix::io::AsRawFd;
+
+const AUTOBAUD_CHAR: u8 = 0x55;
 
 #[derive(Clone)]
 pub struct LoraSer {
@@ -37,15 +41,32 @@ impl LoraSer {
     /// Initialize the serial system, configuring the port.
     pub fn new(portname: PathBuf) -> io::Result<LoraSer> {
         let settings = SerialPortSettings {
-            baud_rate: 57600,
+            baud_rate: 115200,
             data_bits: DataBits::Eight,
             flow_control: FlowControl::None,
             parity: Parity::None,
             stop_bits: StopBits::One,
             timeout: Duration::new(60 * 60 * 24 * 365 * 20, 0),
         };
-        let readport = serialport::open_with_settings(&portname, &settings)?;
+        /* Generic version - restore once there's BREAK support 
+        let readport = serialport::open_with_settings(&portname, &settings)?; 
+         */
+        let mut readport = serialport::posix::TTYPort::open(&portname, &settings)?;
+
+        /* Put the port into 115200bps mode.  Have to use libc tcsendbreak here
+        because Rust's serial stuff doesn't yet support break;
+        see https://gitlab.com/susurrus/serialport-rs/issues/62 to track that issue. */
+        let rawfd = readport.as_raw_fd();
+        unsafe { 
+            tcsendbreak(rawfd, 0);
+        }
+        readport.write_all(&[AUTOBAUD_CHAR])?;
+        
+        
         let writeport = readport.try_clone()?;
+
+        // the next line needed to make it generic; remove once serialport supports BREAK
+        let readport = Box::new(readport);
         
         Ok(LoraSer {br: Arc::new(Mutex::new(BufReader::new(readport))),
                     swrite: Arc::new(Mutex::new(writeport)),

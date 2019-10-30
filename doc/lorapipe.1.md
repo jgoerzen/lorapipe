@@ -238,6 +238,26 @@ half-duplex true
 reliable false
 ```
 
+## YMODEM (and generic example of bidirectional pipe)
+
+ZModem makes a poor fit for LoRa because its smallest block size is
+1K.  YModem, however, uses a 128-byte block size.  Here's an example
+of how to make it work.  Let's say we want to transmit /bin/true over
+the radio.  We could run this:
+
+```
+socat EXEC:'sz --ymodem /bin/true' EXEC:'lorapipe /dev/ttyUSB0 pipe'
+```
+
+And on the receiving end:
+
+```
+socat EXEC:'rz --ymodem' EXEC:'lorapipe /dev/ttyUSB0 pipe'
+```
+
+This approach can also be used with many other programs.  For
+instance, `uucico -l` for UUCP logins.
+
 # INSTALLATION
 
 **lorapipe** is a Rust program and can be built by running **`cargo
