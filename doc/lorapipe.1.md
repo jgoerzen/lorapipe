@@ -189,11 +189,26 @@ As speed decreases, packet size should as well.
 
 # APPLICATION HINTS
 
+## SOCAT
+
 The **socat**(1) program can be particularly helpful; it can gateway TCP
 ports and various other sorts of things into **lorapipe**.  This is
 helpful if the **lorapipe** system is across a network from the system
 you wish to run an application on.  **ssh**(1) can also be useful for
 this purpose.
+
+A basic command might be like this:
+
+```
+socat TCP-LISTEN:12345 EXEC:'lorapipe /dev/ttyUSB0 pipe'
+```
+
+Some systems might require disabling buffering in some situations, or
+using a pty.  In those instances, something like this may be in order:
+
+```
+socat TCP-LISTEN:10104 EXEC:'stdbuf -i0 -o0 -e0 lorapipe /dev/ttyUSB4 pipe,pty,rawer'
+```
 
 ## UUCP
 
@@ -209,7 +224,8 @@ Make sure to specify `half-duplex true` in `/etc/uucp/port`.
 # INSTALLATION
 
 **lorapipe** is a Rust program and can be built by running **`cargo
-build --release`**.  Rust can be easily installed from
+build --release`**.  The executable will then be placed in
+**target/release/lorapipe**. Rust can be easily installed from
 <https://www.rust-lang.org/>. 
 
 # INVOCATION
