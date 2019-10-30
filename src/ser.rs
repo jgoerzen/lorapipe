@@ -25,6 +25,7 @@ use std::time::Duration;
 use std::path::PathBuf;
 use libc::tcsendbreak;
 use std::os::unix::io::AsRawFd;
+use std::thread;
 
 const AUTOBAUD_CHAR: u8 = 0x55;
 
@@ -58,9 +59,12 @@ impl LoraSer {
         see https://gitlab.com/susurrus/serialport-rs/issues/62 to track that issue. */
         let rawfd = readport.as_raw_fd();
         unsafe { 
-            tcsendbreak(rawfd, 0);
+            tcsendbreak(rawfd, 1);
         }
+        thread::sleep(Duration::from_millis(100));
         readport.write_all(&[AUTOBAUD_CHAR])?;
+        readport.flush()?;
+        thread::sleep(Duration::from_millis(100));
         
         
         let writeport = readport.try_clone()?;
