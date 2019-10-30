@@ -42,7 +42,7 @@ impl LoraSer {
     /// Initialize the serial system, configuring the port.
     pub fn new(portname: PathBuf) -> io::Result<LoraSer> {
         let settings = SerialPortSettings {
-            baud_rate: 115200,
+            baud_rate: 57600,
             data_bits: DataBits::Eight,
             flow_control: FlowControl::None,
             parity: Parity::None,
@@ -55,9 +55,11 @@ impl LoraSer {
         let mut readport = serialport::posix::TTYPort::open(&portname, &settings)?;
 
         debug!("Port opened, sending BREAK");
-        /* Put the port into 115200bps mode.  Have to use libc tcsendbreak here
+        /* Put the port into 57600bps mode, which is the default.  Have to use libc tcsendbreak here
         because Rust's serial stuff doesn't yet support break;
-        see https://gitlab.com/susurrus/serialport-rs/issues/62 to track that issue. */
+        see https://gitlab.com/susurrus/serialport-rs/issues/62 to track that issue. 
+
+         The radio doesn't work reliably at 115200bps */
         let rawfd = readport.as_raw_fd();
         unsafe { 
             tcsendbreak(rawfd, 1);
@@ -67,7 +69,7 @@ impl LoraSer {
         readport.write_all(&[AUTOBAUD_CHAR])?;
         readport.flush()?;
         thread::sleep(Duration::from_millis(100));
-        debug!("Port autobaud to 115200 complete");
+        debug!("Port autobaud to 57600 complete");
         
         let writeport = readport.try_clone()?;
 
