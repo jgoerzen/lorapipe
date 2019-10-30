@@ -220,6 +220,7 @@ impl LoraStik {
                 } else {
                     self.txdelay = None;
                 }
+                debug!("handlerx: txdelay set to {:?}", self.txdelay);
 
                 self.readeroutput.send(ReceivedFrames(decoded, radioqual)).unwrap();
             } else {
@@ -235,16 +236,19 @@ impl LoraStik {
     // we are cleared to transmit; Some(Duration) gives the amount of time
     // we'd have to wait otherwise.
     fn txdelayrequired(&mut self) -> Option<Duration> {
+        debug!("txdelayrequired: self.txdelay = {:?}", self.txdelay);
         match self.txdelay {
             None => None,
             Some(delayend) => {
                 let now = Instant::now();
                 if now >= delayend {
                     // We're past the delay.  Clear it and return.
+                    debug!("txdelayrequired: past the required delay");
                     self.txdelay = None;
                     None
                 } else {
                     // Indicate we're still blocked.
+                    debug!("txdelayrequired: required delay {:?}", delayend - now);
                     Some(delayend - now)
                 }
             }
@@ -297,6 +301,7 @@ impl LoraStik {
                     },
                     Err(e) => {
                         if e.is_timeout() {
+                            debug!("readerthread: txdelay timeout expired");
                             self.txdelay = None;
                             // Now we can fall through to the rest of the logic - already in read mode.
                         } else {
