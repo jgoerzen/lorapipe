@@ -25,7 +25,7 @@ use crossbeam_channel;
 use hex;
 use std::thread;
 use std::time::{Duration, Instant};
-use format_escape_default::format_escape_default;
+// use format_escape_default::format_escape_default;
 use std::path::PathBuf;
 
 pub fn mkerror(msg: &str) -> Error {
