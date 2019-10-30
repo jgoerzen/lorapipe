@@ -5,7 +5,7 @@ you'd like to be able to do Unixy things with it -- maybe pipe stuff
 across the radio, maybe run a network over it.  That's what this is
 for.
 
-
+Please see the comprehensive documentation.
 
 This requires a [LoStik](https://ronoth.com/lostik) or other Microchip
 RN2093-based device that has been updated to firmware 1.0.5.  Details

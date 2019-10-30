@@ -76,7 +76,7 @@ struct Opt {
 enum Command {
     /// Pipe data across raios
     Pipe {
-        /// Maximum frame size sent to radio
+        /// Maximum frame size sent to radio [10..250]
         #[structopt(long, default_value = "99")]
         maxpacketsize: usize,
     },
