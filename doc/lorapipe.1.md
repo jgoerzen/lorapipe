@@ -221,6 +221,23 @@ won't work as well.
 
 Make sure to specify `half-duplex true` in `/etc/uucp/port`.
 
+Here is an example of settings in `sys`:
+```
+protocol i
+protocol-parameter i packet-size 90
+protocol-parameter i timeout 30
+```
+
+Note that UUCP adds 10 bytes of overhead per packet, so this is
+designed to work with the default recommended packet size of 100.
+
+Then in `/etc/uucp/port`:
+
+```
+half-duplex true
+reliable false
+```
+
 # INSTALLATION
 
 **lorapipe** is a Rust program and can be built by running **`cargo
@@ -293,6 +310,8 @@ is described extensively above.  It has one optional parameter:
 :  The maximum frame size, in the range of 10 - 250.  The actual frame
    transmitted over the air will be one byte larger due to
    **lorapipe** collision mitigation as described above.
+   Experimentation myself, and reports from others, suggests that LoRa
+   works best when this is 100 or less.
 
 ## lorapipe ... ping
 
