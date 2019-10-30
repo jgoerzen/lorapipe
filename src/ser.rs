@@ -54,6 +54,7 @@ impl LoraSer {
          */
         let mut readport = serialport::posix::TTYPort::open(&portname, &settings)?;
 
+        debug!("Port opened, sending BREAK");
         /* Put the port into 115200bps mode.  Have to use libc tcsendbreak here
         because Rust's serial stuff doesn't yet support break;
         see https://gitlab.com/susurrus/serialport-rs/issues/62 to track that issue. */
@@ -62,10 +63,11 @@ impl LoraSer {
             tcsendbreak(rawfd, 1);
         }
         thread::sleep(Duration::from_millis(100));
+        debug!("Sending AUTOBAUD_CHAR");
         readport.write_all(&[AUTOBAUD_CHAR])?;
         readport.flush()?;
         thread::sleep(Duration::from_millis(100));
-        
+        debug!("Port autobaud to 115200 complete");
         
         let writeport = readport.try_clone()?;
 
