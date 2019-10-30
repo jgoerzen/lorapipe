@@ -5,25 +5,15 @@ you'd like to be able to do Unixy things with it -- maybe pipe stuff
 across the radio, maybe run a network over it.  That's what this is
 for.
 
-Please see the comprehensive documentation.
+Please see the [comprehensive documentation](https://github.com/jgoerzen/lorapipe/blob/master/doc/lorapipe.1.md).
 
 This requires a [LoStik](https://ronoth.com/lostik) or other Microchip
-RN2093-based device that has been updated to firmware 1.0.5.  Details
-below.
-
+RN2903- or RN2483-based or  device that has been updated to firmware 1.0.5.  Details
+in the documentation.
 
 # Data Rate
 
 https://www.rfwireless-world.com/calculators/LoRa-Data-Rate-Calculator.html
-
-
-# Firwmare
-
-See the documents tab for the
-[RN2093](https://www.microchip.com/wwwproducts/en/RN2903) and the
-[firmware upgrade
-guide](https://www.pocketmagic.net/rn2483-rn2903-firmware-upgrade-guide/) -
-note that the upgrade part is really finicky and you need the "offset" file.
 
 # Copyright
 

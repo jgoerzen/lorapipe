@@ -26,6 +26,16 @@ implemented by LoStik.
 
 Drivers for other hardware may be added in the future.
 
+The Microchip firmware must be upgraded to 1.0.5 before running with
+**lorapipe**.  Previous versions lacked the `radio rxstop` command,
+which is a severe limitation when receiving multiple packets rapidly.
+
+See the documents tab for the
+[RN2093](https://www.microchip.com/wwwproducts/en/RN2903) and the
+[firmware upgrade
+guide](https://www.pocketmagic.net/rn2483-rn2903-firmware-upgrade-guide/) -
+note that the upgrade part is really finicky and you need the "offset" file.
+
 # PROTOCOL
 
 The **lorapipe pipe** command is the primary one of interest here.  It

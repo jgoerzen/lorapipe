@@ -26,6 +26,18 @@ Operate an AX.25 network using LoRa, and atop it, TCP/IP
 implemented by LoStik.
 .PP
 Drivers for other hardware may be added in the future.
+.PP
+The Microchip firmware must be upgraded to 1.0.5 before running with
+\f[B]lorapipe\f[].
+Previous versions lacked the \f[C]radio\ rxstop\f[] command, which is a
+severe limitation when receiving multiple packets rapidly.
+.PP
+See the documents tab for the
+RN2093 (https://www.microchip.com/wwwproducts/en/RN2903) and the
+firmware upgrade
+guide (https://www.pocketmagic.net/rn2483-rn2903-firmware-upgrade-guide/)
+\- note that the upgrade part is really finicky and you need the
+\[lq]offset\[rq] file.
 .SH PROTOCOL
 .PP
 The \f[B]lorapipe pipe\f[] command is the primary one of interest here.
