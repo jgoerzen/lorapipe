@@ -200,7 +200,7 @@ this purpose.
 A basic command might be like this:
 
 ```
-socat TCP-LISTEN:12345 EXEC:'lorapipe /dev/ttyUSB0 pipe'
+socat TCP-LISTEN:12345 EXEC:'lorapipe /dev/ttyUSB0 pipe,pty,rawer'
 ```
 
 Some systems might require disabling buffering in some situations, or
@@ -249,13 +249,13 @@ of how to make it work.  Let's say we want to transmit /bin/true over
 the radio.  We could run this:
 
 ```
-socat EXEC:'sz --ymodem /bin/true' EXEC:'lorapipe /dev/ttyUSB0 pipe'
+socat EXEC:'sz --ymodem /bin/true' EXEC:'lorapipe /dev/ttyUSB0 pipe,pty,rawer'
 ```
 
 And on the receiving end:
 
 ```
-socat EXEC:'rz --ymodem' EXEC:'lorapipe /dev/ttyUSB0 pipe'
+socat EXEC:'rz --ymodem' EXEC:'lorapipe /dev/ttyUSB0 pipe,pty,rawer'
 ```
 
 This approach can also be used with many other programs.  For
@@ -350,8 +350,13 @@ It says to connect to /dev/pts/7, so we'll do just that:
 
 ```
 socat /dev/pts/7,rawer \
-  EXEC:'lorapipe /dev/ttyUSB0 kiss'
+  EXEC:'lorapipe /dev/ttyUSB0 kiss,pty,rawer'
 ```
+
+Now, assume you connected a second machine to 192.168.2.3, you should
+be able to ping and talk back and forth between them.  Standard
+commands will work at this stage.  You may wish to adjust the packet
+size in /etc/axports up from 70.
 
 # INSTALLATION
 

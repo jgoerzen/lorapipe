@@ -55,7 +55,6 @@ pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()>
         let mut txbuf = Vec::new();
         txbuf.push(FEND);
         txbuf.append(&mut buf);
-        txbuf.push(FEND);
         trace!("TXBUF: {}", format_escape_default(&txbuf));
         for chunk in txbuf.chunks(maxframesize) {
             ls.transmit(&chunk);
