@@ -458,6 +458,14 @@ the signal quality SNR and RSSI if available.
 
 John Goerzen <jgoerzen@complete.org>
 
+# SEE ALSO
+
+I wrote an
+[introduction](https://changelog.complete.org/archives/10042-long-range-radios-a-perfect-match-for-unix-protocols-from-the-70s)
+and a [follow-up about
+TCP/IP](https://changelog.complete.org/archives/10048-tcp-ip-over-lora-radios)
+on my blog.
+
 # COPYRIGHT AND LICENSE
 
 Copyright (C) 2019  John Goerzen <jgoerzen@complete.org

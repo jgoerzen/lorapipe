@@ -11,6 +11,12 @@ This requires a [LoStik](https://ronoth.com/lostik) or other Microchip
 RN2903- or RN2483-based or  device that has been updated to firmware 1.0.5.  Details
 in the documentation.
 
+I wrote an
+[introduction](https://changelog.complete.org/archives/10042-long-range-radios-a-perfect-match-for-unix-protocols-from-the-70s)
+and a [follow-up about
+TCP/IP](https://changelog.complete.org/archives/10048-tcp-ip-over-lora-radios)
+on my blog.
+
 # Copyright
 
     Copyright (C) 2019 John Goerzen <jgoerzen@complete.org>
