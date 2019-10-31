@@ -181,7 +181,7 @@ radio is the same as `1` to the calculator, while `4/8` is the same as
 Although **lorapipe pipe** doesn't guarantee it preserves application
 framing, in many cases it does.  For applications that have their own
 framing, it is highly desirable to set their frame size to be less
-than the **lorapipe ... pipe --maxpacketsize** setting.  This will
+than the **--maxpacketsize** setting.  This will
 reduce the amount of data that would have to be retransmitted due to
 lost frames.
 
@@ -301,6 +301,57 @@ To interact directly with the modem, something like this will work:
 cu -h --line /dev/ttyUSB0 -s 57600 -e -o -f --nostop
 ```
 
+# RUNNING TCP/IP OVER LORAPIPE WITH AX.25
+
+The AX.25 protocol was initially designed to be used for amateur radio
+purposes.  As the original amateur radio systems have a number of
+properties in common with LoRa, it makes a reasonable way to run a
+TCP/IP stack atop LoRa.  **lorapipe** supports it via the [KISS
+protocol](http://www.ax25.net/kiss.aspx), which is similar to PPP for
+AX.25.
+
+We cannot use PPP directly over LoRa because PPP assumes a reliable,
+full-duplex connection.  KISS does not.
+
+These instructions assume Debian or Raspbian.  Other operating systems
+may be different.
+
+First, install the AX.25 tools: `apt-get install ax25-tools
+ax25-apps socat`.
+
+Now, edit `/etc/ax25/axports` and add a line such as:
+
+```
+lora    NODE1           1200    70      2       lorapipe radio
+```
+
+This defines a port named **lora**, with fake "callsign" **NODE1**,
+speed 1200 (which is ignored), maximum packet length 70, and
+window 2.  Keep the packet length less than the **--maxpacketsize**.
+It is possible that KISS frames may expand due to escaping;
+**lorapipe** will fragment them in this case, but it is best to keep
+this size significantly less than the **lorapipe** max packet size to
+avoid fragmentation as much as possible.  On other machines, give them
+unique callsigns (NODE2 or FOO1 or whatever you like).
+
+Now, start KISS:
+
+```
+kissattach /dev/ptmx lora 192.168.2.2
+AX.25 port lora bound to device ax0
+Awaiting client connects on
+/dev/pts/7
+```
+
+That IP address was made up; you can use any RFC1918 IP address here;
+just make sure they're different on each node.
+
+It says to connect to /dev/pts/7, so we'll do just that:
+
+```
+socat /dev/pts/7,rawer \
+  EXEC:'lorapipe /dev/ttyUSB0 kiss'
+```
 
 # INSTALLATION
 
@@ -357,7 +408,15 @@ before the port and command on the command line.
    the default.  You may be able to use 50ms or less if you are
    sending small packets.  In my testing, with 100-byte packets, 
    a txwait of 50 was generally sufficient.
-   
+
+**--maxpacketsize** *BYTES*
+:  The maximum frame size, in the range of 10 - 250.  The actual frame
+   transmitted over the air will be one byte larger due to
+   **lorapipe** collision mitigation as described above.
+   Experimentation myself, and reports from others, suggests that LoRa
+   works best when this is 100 or less.  Valid only for **kiss** and
+   **pipe** commands; ignored for all others.
+
 *PORT*
 :  The name of the serial port to which the radio is attached.
 
@@ -369,14 +428,7 @@ before the port and command on the command line.
 ## lorapipe ... pipe
 
 The **pipe** subcommand is the main workhorse of the application and
-is described extensively above.  It has one optional parameter:
-
-**--maxpacketsize** *BYTES*
-:  The maximum frame size, in the range of 10 - 250.  The actual frame
-   transmitted over the air will be one byte larger due to
-   **lorapipe** collision mitigation as described above.
-   Experimentation myself, and reports from others, suggests that LoRa
-   works best when this is 100 or less.
+is described extensively above.
 
 ## lorapipe ... ping
 

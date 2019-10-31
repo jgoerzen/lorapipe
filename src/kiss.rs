@@ -49,7 +49,12 @@ pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()>
             continue;
         }
         // OK, we've got it, now make sure it doesn't exceed the limit and transmit.
-        for chunk in buf[0..res].chunks(maxframesize) {
+        // We tripped off the FEND bytes.  Add them back.
+        let mut txbuf = vec![0u8; res + 2];
+        txbuf.push(FEND);
+        txbuf.extend_from_slice(&buf[0..res]);
+        txbuf.push(FEND);
+        for chunk in txbuf.chunks(maxframesize) {
             ls.transmit(&chunk);
         }
     }
