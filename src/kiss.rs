@@ -19,6 +19,8 @@ use std::io;
 use std::io::{BufRead};
 use crate::lorastik::{LoraStik};
 pub use crate::pipe::loratostdout;
+use format_escape_default::format_escape_default;
+use log::*;
 
 // Spec: http://www.ax25.net/kiss.aspx
 
@@ -32,10 +34,10 @@ pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()>
     let stdin = io::stdin();
     let mut br = io::BufReader::new(stdin);
 
-    let mut buf = vec![0u8; 8192];
-
     loop {
+        let mut buf = Vec::new();
         let res = br.read_until(FEND, &mut buf)?;
+
         if res == 0 {
             // EOF
             return Ok(());
@@ -52,8 +54,9 @@ pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()>
         // We tripped off the FEND bytes.  Add them back.
         let mut txbuf = Vec::new();
         txbuf.push(FEND);
-        txbuf.extend_from_slice(&buf[0..res]);
+        txbuf.append(&mut buf);
         txbuf.push(FEND);
+        trace!("TXBUF: {}", format_escape_default(&txbuf));
         for chunk in txbuf.chunks(maxframesize) {
             ls.transmit(&chunk);
         }
