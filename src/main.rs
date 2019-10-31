@@ -25,6 +25,7 @@ mod ser;
 mod lorastik;
 mod pipe;
 mod ping;
+mod kiss;
 
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -44,6 +45,10 @@ struct Opt {
     /// Radio initialization command file
     #[structopt(long, parse(from_os_str))]
     initfile: Option<PathBuf>,
+
+    /// Maximum frame size sent to radio [10..250] (valid only for ping and kiss)
+    #[structopt(long, default_value = "100")]
+    maxpacketsize: usize,
 
     /// Amount of time (ms) to pause before transmitting a packet
     /* The
@@ -75,15 +80,13 @@ struct Opt {
 #[derive(Debug, StructOpt)]
 enum Command {
     /// Pipe data across raios
-    Pipe {
-        /// Maximum frame size sent to radio [10..250]
-        #[structopt(long, default_value = "100")]
-        maxpacketsize: usize,
-    },
+    Pipe,
     /// Transmit ping requests
     Ping,
     /// Receive ping requests and transmit pongs
     Pong,
+    /// Pipe KISS data across the radios
+    Kiss,
 }
 
 fn main() {
@@ -101,10 +104,16 @@ fn main() {
     let mut ls2 = ls.clone();
     thread::spawn(move || ls2.readerthread().expect("Failure in readerthread"));
 
+    let maxpacketsize = opt.maxpacketsize;
+    
     match opt.cmd {
-        Command::Pipe{ maxpacketsize } => {
+        Command::Pipe => {
             thread::spawn(move || pipe::stdintolora(&mut ls, maxpacketsize).expect("Failure in stdintolora"));
             pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
+        },
+        Command::Kiss => {
+            thread::spawn(move || kiss::stdintolorakiss(&mut ls, maxpacketsize).expect("Failure in stdintolorakiss"));
+            kiss::loratostdout(radioreceiver).expect("Failure in loratostdout");
         },
         Command::Ping => {
             thread::spawn(move || ping::genpings(&mut ls).expect("Failure in genpings"));

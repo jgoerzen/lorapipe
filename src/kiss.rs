@@ -16,43 +16,43 @@
 */
 
 use std::io;
-use std::io::{Read, Write};
-use crate::lorastik::{LoraStik, ReceivedFrames};
-use crossbeam_channel;
+use std::io::{BufRead};
+use crate::lorastik::{LoraStik};
+pub use crate::pipe::loratostdout;
 
-const MAXFRAME: usize = 200;
+// Spec: http://www.ax25.net/kiss.aspx
+
 const FEND: u8 = 0xC0;
-const FESC: u8 = 0xDB;
-const TFEND: u8 = 0xDC;
-const TFESC: u8 = 0xDD;
+// const FESC: u8 = 0xDB;
+// const TFEND: u8 = 0xDC;
+// const TFESC: u8 = 0xDD;
 
 /// A thread for stdin processing
-pub fn stdintolora(ls: &mut LoraStik) -> io::Result<()> {
+pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()> {
     let stdin = io::stdin();
     let mut br = io::BufReader::new(stdin);
 
     let mut buf = vec![0u8; 8192];
 
     loop {
-        let res = br.read(&mut buf)?;
+        let res = br.read_until(FEND, &mut buf)?;
         if res == 0 {
             // EOF
             return Ok(());
+        } else if res < 2 {
+            // Every frame from stdin will start with FEND and a control character;
+            // we got just FEND, we are in the space between to frames, so we should just
+            // proceed.  Similar if we have some non-data frame.
+            continue;
+        } else if buf[0] != 0 {
+            // A TNC control frame; do not send.
+            continue;
         }
-
-        for chunk in buf[0..res].chunks(MAXFRAME) {
+        // OK, we've got it, now make sure it doesn't exceed the limit and transmit.
+        for chunk in buf[0..res].chunks(maxframesize) {
             ls.transmit(&chunk);
         }
     }
 }
 
-pub fn loratostdout(receiver: crossbeam_channel::Receiver<ReceivedFrames>) -> io::Result<()> {
-    let mut stdout = io::stdout();
-
-    loop {
-        let data = receiver.recv().unwrap();
-        stdout.write_all(&data.0)?;
-        stdout.flush()?;
-    }
-}
-
+// loratostdout just comes from pipe
