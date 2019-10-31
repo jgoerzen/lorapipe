@@ -101,7 +101,7 @@ impl LoraStik {
     /// parameters after a read.
     pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
         let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
-        let (txblockstx, txblocksrx) = crossbeam_channel::unbounded();
+        let (txblockstx, txblocksrx) = crossbeam_channel::bounded(3);
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
 
         let ser2 = ser.clone();

@@ -358,6 +358,12 @@ be able to ping and talk back and forth between them.  Standard
 commands will work at this stage.  You may wish to adjust the packet
 size in /etc/axports up from 70.
 
+To bring down the link, Ctrl-C the socat sessions and run `killall kissattach`.
+
+For more information, see:
+
+- [The Linux AX.25 HOWTO](http://www.tldp.org/HOWTO/AX25-HOWTO/)
+
 # INSTALLATION
 
 **lorapipe** is a Rust program and can be built by running **`cargo
