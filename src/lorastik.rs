@@ -286,7 +286,7 @@ impl LoraStik {
         Ok(())
     }
     
-    pub fn readerthread(&mut self) -> io::Result<()> {
+    pub fn mainloop(&mut self) -> io::Result<()> {
         loop {
             // First, check to see if we're allowed to transmit.  If not, just
             // try to read and ignore all else.

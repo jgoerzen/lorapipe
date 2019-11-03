@@ -301,7 +301,7 @@ To interact directly with the modem, something like this will work:
 cu -h --line /dev/ttyUSB0 -s 57600 -e -o -f --nostop
 ```
 
-# RUNNING TCP/IP OVER LORAPIPE WITH AX.25
+# RUNNING SSH AND/OR TCP/IP OVER AX.25 WITH KISS
 
 The AX.25 protocol was initially designed to be used for amateur radio
 purposes.  As the original amateur radio systems have a number of
@@ -322,12 +322,12 @@ ax25-apps socat`.
 Now, edit `/etc/ax25/axports` and add a line such as:
 
 ```
-lora    NODE1           1200    70      2       lorapipe radio
+lora    NODE1           1200    70      1       lorapipe radio
 ```
 
 This defines a port named **lora**, with fake "callsign" **NODE1**,
 speed 1200 (which is ignored), maximum packet length 70, and
-window 2.  Keep the packet length less than the **--maxpacketsize**.
+window 1.  Keep the packet length less than the **--maxpacketsize**.
 It is possible that KISS frames may expand due to escaping;
 **lorapipe** will fragment them in this case, but it is best to keep
 this size significantly less than the **lorapipe** max packet size to
@@ -363,6 +363,14 @@ To bring down the link, Ctrl-C the socat sessions and run `killall kissattach`.
 For more information, see:
 
 - [The Linux AX.25 HOWTO](http://www.tldp.org/HOWTO/AX25-HOWTO/)
+
+## SSH OVER AX.25 WITHOUT TCP/IP
+
+Although TCP/IP will run over AX.25, it adds enough overhead that is
+can really slow things down.  Plus, it's not really tuned for these
+very low-bandwidth links.  Fortunately, however, it's possible to run
+SSH directly atop AX.25, which will perform better!
+
 
 # INSTALLATION
 

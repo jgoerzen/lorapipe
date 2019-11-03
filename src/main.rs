@@ -102,7 +102,7 @@ fn main() {
     ls.radiocfg(opt.initfile).expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();
-    thread::spawn(move || ls2.readerthread().expect("Failure in readerthread"));
+    thread::spawn(move || ls2.mainloop().expect("Failure in readerthread"));
 
     let maxpacketsize = opt.maxpacketsize;
     
