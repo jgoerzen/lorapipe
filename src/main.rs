@@ -97,15 +97,15 @@ fn main() {
     }
     info!("lora starting");
 
+    let maxpacketsize = opt.maxpacketsize;
+    
     let loraser = ser::LoraSer::new(opt.port).expect("Failed to initialize serial port");
-    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, opt.readqual, opt.txwait, opt.eotwait);
+    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, opt.readqual, opt.txwait, opt.eotwait, maxpacketsize);
     ls.radiocfg(opt.initfile).expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();
     thread::spawn(move || ls2.mainloop().expect("Failure in readerthread"));
 
-    let maxpacketsize = opt.maxpacketsize;
-    
     match opt.cmd {
         Command::Pipe => {
             thread::spawn(move || pipe::stdintolora(&mut ls, maxpacketsize).expect("Failure in stdintolora"));

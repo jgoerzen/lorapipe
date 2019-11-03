@@ -66,6 +66,12 @@ pub struct LoraStik {
     // The transmit prevention timeout.  Initialized from
     // [`eotwait`].
     eotwait: Duration,
+
+    // Extra data, to send before the next frame.
+    extradata: Vec<u8>,
+
+    // Maximum packet size
+    maxpacketsize: usize,
 }
 
 /// Reads the lines from the radio and sends them down the channel to
@@ -99,7 +105,7 @@ impl LoraStik {
     /// as well as a separate receiver to be used in a separate thread to handle
     /// incoming frames.  The bool specifies whether or not to read the quality
     /// parameters after a read.
-    pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
+    pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64, maxpacketsize: usize) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
         let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
         let (txblockstx, txblocksrx) = crossbeam_channel::bounded(3);
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
@@ -108,10 +114,11 @@ impl LoraStik {
         
         thread::spawn(move || readerlinesthread(ser2, readerlinestx));
         
-        (LoraStik { readqual, ser, readeroutput, readerlinesrx, txblockstx, txblocksrx,
+        (LoraStik { readqual, ser, readeroutput, readerlinesrx, txblockstx, txblocksrx, maxpacketsize,
                     txdelay: None,
                     txwait: Duration::from_millis(txwait),
-                    eotwait: Duration::from_millis(eotwait)}, readeroutputreader)
+                    eotwait: Duration::from_millis(eotwait),
+                    extradata: vec![]}, readeroutputreader)
     }
 
     /// Utility to read the response from initialization
@@ -172,11 +179,39 @@ impl LoraStik {
 
     /// Utililty function to handle actual sending.  Assumes radio is idle.
     fn dosend(&mut self, data: Vec<u8>) -> io::Result<()> {
+        let mut tosend = vec![];
+        tosend.append(&mut self.extradata);   // drains self.extradata!
+        tosend.append(&mut data.clone());
+        let mut data = tosend; // hide the original 'data'
+
+        while data.len() < self.maxpacketsize && self.extradata.is_empty() {
+            // Consider the next packet - maybe we can combine it with this one.
+            let r = self.txblocksrx.try_recv();
+            match r {
+                Ok(mut next) => {
+                    if data.len() + next.len() <= self.maxpacketsize {
+                        data.append(&mut next);
+                    } else {
+                        self.extradata.append(&mut next);
+                    }
+                },
+                Err(e) => {
+                    if e.is_disconnected() {
+                        // other threads crashed
+                        r.unwrap();
+                    }
+                    // Otherwise - nothing to do
+                    break;
+                }
+            }
+        }
+            
+        
         // Give receiver a change to process.
         thread::sleep(self.txwait);
 
         let mut flag: u8 = 0;
-        if !self.txblocksrx.is_empty() {
+        if (!self.txblocksrx.is_empty()) || (!self.extradata.is_empty()) {
             flag = 1;
         }
 
@@ -315,6 +350,11 @@ impl LoraStik {
                 // Do we have anything to send?  Check at the top and keep checking
                 // here so we send as much as possible before going back into read
                 // mode.
+                if ! self.extradata.is_empty() {
+                    // Send the extradata immediately
+                    self.dosend(vec![])?;
+                    continue;
+                }
                 let r = self.txblocksrx.try_recv();
                 match r {
                     Ok(data) => {
@@ -333,7 +373,8 @@ impl LoraStik {
                 self.enterrxmode()?;
             }
 
-            // At this point, we're in rx mode with no timeout.
+            // At this point, we're in rx mode with no timeout.  No extradata
+            // is waiting either.
             // Now we wait for either a write request or data.
 
             let mut sel = crossbeam_channel::Select::new();
