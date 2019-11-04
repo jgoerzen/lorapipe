@@ -304,7 +304,8 @@ impl LoraStik {
 
                 self.readeroutput.send(ReceivedFrames(decoded, radioqual)).unwrap();
 
-                if flag == 2 {
+                if flag == 2 && self.txslot != None {
+                    // Other end has more data, but it giving us a chance to transmit.
                     // Need to immediately send something.  dosend() will pick up
                     // self.extradata or self.txblocksrx to fill up the frame if it can.
                     self.dosend(vec![])?;
