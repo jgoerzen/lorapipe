@@ -360,17 +360,77 @@ size in /etc/axports up from 70.
 
 To bring down the link, Ctrl-C the socat sessions and run `killall kissattach`.
 
+## OPTIMIZING TCP/IP OVER LORA
+
+It should be noted that a TCP ACK encapsulated in AX.25 takes 69 bytes
+to transmit -- that's a header with no data, and it's 69 bytes!  This
+is a significant overhead.  It can be dramatically reduced by using a
+larger packet size; for instance, in /etc/ax25/axports, thange the
+packet length of 70 to 1024.  This will now cause the
+**--maxpacketsize** option to take precedence and fragment the TCP/IP
+packets for transmission over LoRa; they will, of course, be
+reassembled on the other end.  Setting **--txslot 2000** or a similar
+value will also be helpful in causing TCP ACKs to reach the remote end
+quicker, hopefully before timeouts expire.  **--pack** may also
+produce some marginal benefit.
+
+I have been using:
+
+```
+lorapipe --initfile=init-fast.txt --txslot 2000 --pack --debug --maxpacketsize 200 --txwait 150
+```
+
+with success on a very clean (reasonably error-free) link.
+
+## More on Linux AX.25
+
 For more information, see:
 
 - [The Linux AX.25 HOWTO](http://www.tldp.org/HOWTO/AX25-HOWTO/)
 
 ## SSH OVER AX.25 WITHOUT TCP/IP
 
-Although TCP/IP will run over AX.25, it adds enough overhead that is
-can really slow things down.  Plus, it's not really tuned for these
-very low-bandwidth links.  Fortunately, however, it's possible to run
-SSH directly atop AX.25, which will perform better!
+Before **lorapipe** introduced frame combining and  **--txslot**,
+performance of SSH over TCP/IP was as low as 25% of its performance
+over native AX.25.   With the addition of the above features, it has
+achieved parity with native AX.25 on fairly clean links.
 
+There is somewhat more effort on running SSH atop AX.25 natively,
+since it was not designed to run in such a way.  We can make it work,
+however.
+
+First, on the node which will run the SSH server -- in this example it
+will be NODE1 -- create an /etc/ax25/ax25d.conf file with contents
+like this:
+
+```[NODE1-1 VIA *]
+NOCALL   * * * * * *  L
+default  * * * * * *  - root  /usr/bin/socat socat -b 220 STDIO TCP:localhost:22
+```
+
+This will cause it to accept connections on AX.25 port 1 (in NODE1-1,
+the part after the dash is the AX.25 port number), and redirect to
+local TCP port 22, ssh.  The -b 220 assumes the packet length is 220
+in /etc/ax25/axports, and causes ssh data to not exceed that length.
+
+Now you can fire it up with **ax25d -l**.
+
+Connecting to it requires an 8-bit clean AX.25 connection.
+Unfortunately, **axcall(1)** does not provide this.  **ax25_call**
+can, but it must be modified to cause it to not emit the
+"Connecting..." and "Connected" messages which will confuse ssh.  Once
+done, the connection can be initiated with:
+
+```
+ssh -v -o "ProxyCommand=socat -b 220 STDIO EXEC:'/path/ax25_call -i 220 -o 220 lora NODE2 NODE1-1,pty,rawer'" user@host
+```
+
+NODE2 is the node name that ssh is running on, and NODE1 is the
+destination node.  Replace every instance of 220 here with your
+maximum packet length.
+
+This is a somewhat fragile setup, and it is recommended to use TCP
+instead, in general.
 
 # INSTALLATION
 
@@ -448,7 +508,9 @@ before the port and command on the command line.
    end to immediately send back a frame - data if it has some, or a "I
    don't have anything, continue" frame otherwise.  After transmitting
    flag 2, it will wait up to **txwait** seconds for the first packet
-   from the other end before continuing to transmit.
+   from the other end before continuing to transmit.  The default is
+   0, which disables the txslot feature and is suitable for uses which
+   do not expect ACKs.
 
 **--maxpacketsize** *BYTES*
 :  The maximum frame size, in the range of 10 - 250.  The actual frame

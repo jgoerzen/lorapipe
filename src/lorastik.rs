@@ -256,8 +256,10 @@ impl LoraStik {
                     },
                 _ => ()
             }
+        } else {
+            self.txslotend = None;
         }
-
+        
         // Now, send the mesage.
         let txstr = format!("radio tx {}{}", hex::encode([flag]), hex::encode(data));
 
