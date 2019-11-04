@@ -197,6 +197,10 @@ impl LoraStik {
         tosend.append(&mut data.clone());
         let mut data = tosend;                // hide the original 'data'
 
+        if data.len() > self.maxpacketsize {
+            self.extradata = data.split_off(self.maxpacketsize);
+        }
+        
         while data.len() < self.maxpacketsize && self.extradata.is_empty() {
             // Consider the next packet - maybe we can combine it with this one.
             let r = self.txblocksrx.try_recv();
