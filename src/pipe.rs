@@ -25,7 +25,7 @@ pub fn stdintolora(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()> {
     let stdin = io::stdin();
     let mut br = io::BufReader::new(stdin);
 
-    let mut buf = vec![0u8; 4096];
+    let mut buf = vec![0u8; 1024];
 
     loop {
         let res = br.read(&mut buf)?;
