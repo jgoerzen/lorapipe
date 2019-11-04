@@ -301,6 +301,58 @@ To interact directly with the modem, something like this will work:
 cu -h --line /dev/ttyUSB0 -s 57600 -e -o -f --nostop
 ```
 
+# RUNNING TCP/IP OVER LORA WITH PPP
+
+PPP is the fastest way to run TCP/IP over LoRa with **lorapipe**.  It
+is subject to a few limitations:
+
+- At most two devices must be using the frequency.  PPP cannot support
+  ad-hoc communication to multiple devices like AX.25 can (see below).
+- PPP compression should not be turned on.  This is because PPP
+  normally assumes a lossless connection, and any dropped packets
+  become rather expensive for PPP to handle, since compression has to
+  be re-set.  Better to use compression at the protocol level; for
+  instance, with **ssh -C**.
+  
+To set up PPP, on one device, create /etc/ppp/peers/lora with this
+content:
+
+```
+hide-password 
+noauth
+debug
+nodefaultroute
+192.168.2.3:192.168.2.2 
+mru 1024
+passive
+115200
+nobsdcomp
+nodeflate
+```
+
+On the other device, swap the order of those IP addresses.
+
+Now, fire it up on each end with a command like this:
+
+```
+socat EXEC:'pppd nodetach file /etc/ppp/peers/lora,pty,rawer' \
+  EXEC:'lorapipe --txslot 2000 --initfile=init-fast.txt --maxpacketsize 100 --txwait 120 /dev/ttyUSB0 pipe,pty,rawer'
+```
+
+According to the PPP docs, an MRU of 296 might be suitable for slower
+links.
+
+This will now permit you to ping across the link.  Additional options
+can be added to add, for instance, a bit of authentication at the
+start and so forth (though note that LoRa, being RF, means that a
+session could be hijacked, so don't put a lot of stock in this as a
+limit; best to add firewall rules, etc.)
+
+Of course, ssh can nicely run over this, and in my testing, PPP was
+the fastest method of running SSH over LoRa, beating out even AX.25.
+But then, that makes some sense, since AX.25 has to add addressing
+bits to every frame since it is a more LAN-like protocol.
+
 # RUNNING SSH AND/OR TCP/IP OVER AX.25 WITH KISS
 
 The AX.25 protocol was initially designed to be used for amateur radio
@@ -310,8 +362,9 @@ TCP/IP stack atop LoRa.  **lorapipe** supports it via the [KISS
 protocol](http://www.ax25.net/kiss.aspx), which is similar to PPP for
 AX.25.
 
-We cannot use PPP directly over LoRa because PPP assumes a reliable,
-full-duplex connection.  KISS does not.
+PPP normally assumes a reliable, point-to-point connection.  AX.25 and
+KISS allow for more than 2 devices to share a frequency.
+
 
 These instructions assume Debian or Raspbian.  Other operating systems
 may be different.
