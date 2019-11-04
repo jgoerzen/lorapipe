@@ -327,7 +327,7 @@ impl LoraStik {
                 let now = Instant::now();
                 if now >= delayend {
                     // We're past the delay.  Clear it and return.
-                    debug!("txdelayrequired: past the required delay");
+                    debug!("txdelayrequired: {:?} past the required delay {:?}", now, delayend);
                     self.txdelay = None;
                     None
                 } else {

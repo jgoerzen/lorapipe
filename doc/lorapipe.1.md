@@ -436,6 +436,20 @@ before the port and command on the command line.
    sending small packets.  In my testing, with 100-byte packets, 
    a txwait of 50 was generally sufficient.
 
+**--txslot** TIME**
+:  The maximum of time in milliseconds for one end of the conversation
+   to continue transmitting without switching to receive mode.  This
+   is useful for protocols such as TCP that expect periodic ACKs and
+   get perturbed when they are not delivered in a timely manner.  If
+   **--txslot** is given, then after the given number of milliseconds
+   have elapsed, the next packet transmitted will signal to the other
+   end that it should take a turn.  If the transmitter has more data
+   to send, it is sent with a special flag of 2 to request the other
+   end to immediately send back a frame - data if it has some, or a "I
+   don't have anything, continue" frame otherwise.  After transmitting
+   flag 2, it will wait up to **txwait** seconds for the first packet
+   from the other end before continuing to transmit.
+
 **--maxpacketsize** *BYTES*
 :  The maximum frame size, in the range of 10 - 250.  The actual frame
    transmitted over the air will be one byte larger due to
