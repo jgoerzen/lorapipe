@@ -402,7 +402,15 @@ before the port and command on the command line.
    some corner cases where this is not possible.  The details will be
    logged with **lorapipe**'s logging facility, and are therefore only
    visible if **--debug** is also used.
-   
+
+**--pack**
+:  Attempt to pack as many bytes into each transmitted frame as
+   possible.  Ordinarily, the **pipe** and **kiss** commands attempt
+   -- though do not guarantee -- to preserve original framing from the
+   operating system.  With **--pack**, instead the effort is made to
+   absolutely minimize the number of transmitted frames by putting as
+   much data as possible into each.
+
 **-V**, **--version**
 :  Display the version number of **lorapipe**.
 
@@ -433,8 +441,7 @@ before the port and command on the command line.
    transmitted over the air will be one byte larger due to
    **lorapipe** collision mitigation as described above.
    Experimentation myself, and reports from others, suggests that LoRa
-   works best when this is 100 or less.  Valid only for **kiss** and
-   **pipe** commands; ignored for all others.
+   works best when this is 100 or less.
 
 *PORT*
 :  The name of the serial port to which the radio is attached.
