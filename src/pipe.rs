@@ -34,7 +34,7 @@ pub fn stdintolora(ls: &mut LoraStik) -> io::Result<()> {
             return Ok(());
         }
 
-        ls.transmit(&buf);
+        ls.transmit(&buf[0..res]);
     }
 }
 
