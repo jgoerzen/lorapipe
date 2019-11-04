@@ -72,6 +72,9 @@ pub struct LoraStik {
 
     // Maximum packet size
     maxpacketsize: usize,
+
+    // Whether or not to always try to cram as much as possible into each TX frame
+    pack: bool,
 }
 
 /// Reads the lines from the radio and sends them down the channel to
@@ -182,17 +185,29 @@ impl LoraStik {
         let mut tosend = vec![];
         tosend.append(&mut self.extradata);   // drains self.extradata!
         tosend.append(&mut data.clone());
-        let mut data = tosend; // hide the original 'data'
+        let mut data = tosend;                // hide the original 'data'
 
         while data.len() < self.maxpacketsize && self.extradata.is_empty() {
             // Consider the next packet - maybe we can combine it with this one.
             let r = self.txblocksrx.try_recv();
             match r {
                 Ok(mut next) => {
-                    if data.len() + next.len() <= self.maxpacketsize {
+                    if self.pack {
+                        // Try to fill up the frame.
                         data.append(&mut next);
+                        if data.len() > self.maxpacketsize {
+                            // Too much; put the extra into extradata.
+                            self.extradata = data.split_off(self.maxpacketsize);
+                            break;  // for clarity only -- would exit the loop anyhow
+                        }
                     } else {
-                        self.extradata.append(&mut next);
+                        // Only append the extra if it will fit entirely in the frame.
+                        if data.len() + next.len() <= self.maxpacketsize {
+                            data.append(&mut next);
+                        } else {
+                            self.extradata.append(&mut next);
+                            break;  // for clarity only -- would exit the loop anyhow
+                        }
                     }
                 },
                 Err(e) => {
