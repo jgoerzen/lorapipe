@@ -34,9 +34,7 @@ pub fn stdintolora(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()> {
             return Ok(());
         }
 
-        for chunk in buf[0..res].chunks(maxframesize) {
-            ls.transmit(&chunk);
-        }
+        ls.transmit(&buf);
     }
 }
 

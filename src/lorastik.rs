@@ -108,7 +108,7 @@ impl LoraStik {
     /// as well as a separate receiver to be used in a separate thread to handle
     /// incoming frames.  The bool specifies whether or not to read the quality
     /// parameters after a read.
-    pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64, maxpacketsize: usize) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
+    pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64, maxpacketsize: usize, pack: bool) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
         let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
         let (txblockstx, txblocksrx) = crossbeam_channel::bounded(3);
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
@@ -117,7 +117,7 @@ impl LoraStik {
         
         thread::spawn(move || readerlinesthread(ser2, readerlinestx));
         
-        (LoraStik { readqual, ser, readeroutput, readerlinesrx, txblockstx, txblocksrx, maxpacketsize,
+        (LoraStik { readqual, ser, readeroutput, readerlinesrx, txblockstx, txblocksrx, maxpacketsize, pack,
                     txdelay: None,
                     txwait: Duration::from_millis(txwait),
                     eotwait: Duration::from_millis(eotwait),

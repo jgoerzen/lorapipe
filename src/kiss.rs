@@ -38,6 +38,8 @@ pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()>
         let mut buf = Vec::new();
         let res = br.read_until(FEND, &mut buf)?;
 
+        // buf now ends with FEND but doesn't begin with it (in the case of a frame)
+        
         if res == 0 {
             // EOF
             return Ok(());
