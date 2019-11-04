@@ -30,7 +30,7 @@ const FEND: u8 = 0xC0;
 // const TFESC: u8 = 0xDD;
 
 /// A thread for stdin processing
-pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()> {
+pub fn stdintolorakiss(ls: &mut LoraStik) -> io::Result<()> {
     let stdin = io::stdin();
     let mut br = io::BufReader::new(stdin);
 
@@ -58,9 +58,7 @@ pub fn stdintolorakiss(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()>
         txbuf.push(FEND);
         txbuf.append(&mut buf);
         trace!("TXBUF: {}", format_escape_default(&txbuf));
-        for chunk in txbuf.chunks(maxframesize) {
-            ls.transmit(&chunk);
-        }
+        ls.transmit(&txbuf);
     }
 }
 

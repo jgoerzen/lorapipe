@@ -55,10 +55,6 @@ pub struct LoraStik {
     // Whether or not to read quality data from the radio
     readqual: bool,
 
-    // Whether we must delay before transmit.  The Instant
-    // reflects the moment when the delay should end.
-    txdelay: Option<Instant>,
-
     // The wait before transmitting.  Initialized from
     // [`txwait`].
     txwait: Duration,
@@ -66,6 +62,9 @@ pub struct LoraStik {
     // The transmit prevention timeout.  Initialized from
     // [`eotwait`].
     eotwait: Duration,
+
+    // The maximum transmit time.
+    txslot: Option<Duration>,
 
     // Extra data, to send before the next frame.
     extradata: Vec<u8>,
@@ -75,6 +74,13 @@ pub struct LoraStik {
 
     // Whether or not to always try to cram as much as possible into each TX frame
     pack: bool,
+
+    // Whether we must delay before transmit.  The Instant
+    // reflects the moment when the delay should end.
+    txdelay: Option<Instant>,
+
+    // When the current TX slot ends, if any.
+    txslotend: Option<Instant>,
 }
 
 /// Reads the lines from the radio and sends them down the channel to
@@ -108,7 +114,7 @@ impl LoraStik {
     /// as well as a separate receiver to be used in a separate thread to handle
     /// incoming frames.  The bool specifies whether or not to read the quality
     /// parameters after a read.
-    pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64, maxpacketsize: usize, pack: bool) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
+    pub fn new(ser: LoraSer, readqual: bool, txwait: u64, eotwait: u64, maxpacketsize: usize, pack: bool, txslot: u64) -> (LoraStik, crossbeam_channel::Receiver<ReceivedFrames>) {
         let (readerlinestx, readerlinesrx) = crossbeam_channel::unbounded();
         let (txblockstx, txblocksrx) = crossbeam_channel::bounded(3);
         let (readeroutput, readeroutputreader) = crossbeam_channel::unbounded();
@@ -121,6 +127,10 @@ impl LoraStik {
                     txdelay: None,
                     txwait: Duration::from_millis(txwait),
                     eotwait: Duration::from_millis(eotwait),
+                    txslot: if txslot > 0 {
+                        Some(Duration::from_millis(txslot))
+                    } else { None },
+                    txslotend: None,
                     extradata: vec![]}, readeroutputreader)
     }
 
@@ -221,13 +231,27 @@ impl LoraStik {
             }
         }
             
+        let mut flag: u8 = 0;
         
         // Give receiver a change to process.
         thread::sleep(self.txwait);
 
-        let mut flag: u8 = 0;
         if (!self.txblocksrx.is_empty()) || (!self.extradata.is_empty()) {
+            // If there will be more data to send..
             flag = 1;
+
+            // See if we need to signal the other end's turn.
+            match (self.txslotend, self.txslot) {
+                (None, Some(txslot)) => self.txslotend = Some(Instant::now() + txslot),
+                (Some(txslotend), _) =>
+                    if Instant::now() > txslotend {
+                        debug!("txslot exceeded; setting txdelay and sending flag 2");
+                        flag = 2;
+                        self.txdelay = Some(Instant::now() + self.eotwait);
+                        self.txslotend = None;
+                    },
+                _ => ()
+            }
         }
 
         // Now, send the mesage.
@@ -273,6 +297,12 @@ impl LoraStik {
                 debug!("handlerx: txdelay set to {:?}", self.txdelay);
 
                 self.readeroutput.send(ReceivedFrames(decoded, radioqual)).unwrap();
+
+                if flag == 2 {
+                    // Need to immediately send something.  dosend() will pick up
+                    // self.extradata or self.txblocksrx to fill up the frame if it can.
+                    self.dosend(vec![])?;
+                }
             } else {
                 return Err(mkerror("Error with hex decoding"));
             }

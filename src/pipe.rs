@@ -21,7 +21,7 @@ use crate::lorastik::{LoraStik, ReceivedFrames};
 use crossbeam_channel;
 
 /// A thread for stdin processing
-pub fn stdintolora(ls: &mut LoraStik, maxframesize: usize) -> io::Result<()> {
+pub fn stdintolora(ls: &mut LoraStik) -> io::Result<()> {
     let stdin = io::stdin();
     let mut br = io::BufReader::new(stdin);
 

@@ -54,6 +54,10 @@ struct Opt {
     #[structopt(long, default_value = "100")]
     maxpacketsize: usize,
 
+    /// Maximum time to transmit at once before giving a chance to receive (in ms). 0=infinite
+    #[structopt(long, default_value = "0")]
+    txslot: u64,
+
     /// Amount of time (ms) to pause before transmitting a packet
     /* The
     main purpose of this is to give the othe rradio a chance to finish
@@ -104,7 +108,7 @@ fn main() {
     let maxpacketsize = opt.maxpacketsize;
     
     let loraser = ser::LoraSer::new(opt.port).expect("Failed to initialize serial port");
-    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, opt.readqual, opt.txwait, opt.eotwait, maxpacketsize, pack);
+    let (mut ls, radioreceiver) = lorastik::LoraStik::new(loraser, opt.readqual, opt.txwait, opt.eotwait, maxpacketsize, opt.pack, opt.txslot);
     ls.radiocfg(opt.initfile).expect("Failed to configure radio");
 
     let mut ls2 = ls.clone();
@@ -112,11 +116,11 @@ fn main() {
 
     match opt.cmd {
         Command::Pipe => {
-            thread::spawn(move || pipe::stdintolora(&mut ls, maxpacketsize).expect("Failure in stdintolora"));
+            thread::spawn(move || pipe::stdintolora(&mut ls).expect("Failure in stdintolora"));
             pipe::loratostdout(radioreceiver).expect("Failure in loratostdout");
         },
         Command::Kiss => {
-            thread::spawn(move || kiss::stdintolorakiss(&mut ls, maxpacketsize).expect("Failure in stdintolorakiss"));
+            thread::spawn(move || kiss::stdintolorakiss(&mut ls).expect("Failure in stdintolorakiss"));
             kiss::loratostdout(radioreceiver).expect("Failure in loratostdout");
         },
         Command::Ping => {
