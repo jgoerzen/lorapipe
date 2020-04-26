@@ -176,6 +176,12 @@ or increasing the spreading factor.  Note that coderate `4/5` to the
 radio is the same as `1` to the calculator, while `4/8` is the same as
 `4`.
 
+**Important note**: If you have the RN2483-based Lorastik, it requires
+a band as part of the `mac reset` command.  You will need to edit the
+config file to say either `mac reset 868` or `mac reset 433` depending
+on which band you will be using.  See
+<https://github.com/jgoerzen/lorapipe/issues/2> for further details.
+
 # PROTOCOL HINTS
 
 Although **lorapipe pipe** doesn't guarantee it preserves application
@@ -561,9 +567,11 @@ before the port and command on the command line.
    end to immediately send back a frame - data if it has some, or a "I
    don't have anything, continue" frame otherwise.  After transmitting
    flag 2, it will wait up to **txwait** seconds for the first packet
-   from the other end before continuing to transmit.  The default is
-   0, which disables the txslot feature and is suitable for uses which
-   do not expect ACKs.
+   from the other end before continuing to transmit.  This setting is
+   not suitable when more than 2 radios are on-frequency.  Setting
+   txslot also enables responses to flag 2.  The default is 0, which
+   disables the txslot feature and is suitable for uses which do not
+   expect ACKs.
 
 **--maxpacketsize** *BYTES*
 :  The maximum frame size, in the range of 10 - 250.  The actual frame
