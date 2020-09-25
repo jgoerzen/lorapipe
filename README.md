@@ -17,6 +17,8 @@ and a [follow-up about
 TCP/IP](https://changelog.complete.org/archives/10048-tcp-ip-over-lora-radios)
 on my blog.
 
+My [xbnet](https://github.com/jgoerzen/xbnet) project is an adaptation of lorapipe for use with XBee radios, and supports TCP/IP over virtual tun devices as well as Ethernet frames over XBee with tap.
+
 # Copyright
 
     Copyright (C) 2019 John Goerzen <jgoerzen@complete.org>
